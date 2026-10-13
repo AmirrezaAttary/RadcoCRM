@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: backend
+
+    command: python backend/manage.py runserver 0.0.0.0:8000
+
+    volumes:
+      - .:/app
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - ./env/dev/.env
+
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17-alpine
+
+    container_name: postgres
+
+    restart: unless-stopped
+
+    env_file:
+      - ./env/dev/.env
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -1,0 +1,11 @@
+Django==4.2.30
+djangorestframework
+psycopg[binary]
+python-decouple
+Pillow
+drf-spectacular
+djangorestframework-simplejwt
+django-cors-headers
+psycopg2-binary
+smsir-python
+requests

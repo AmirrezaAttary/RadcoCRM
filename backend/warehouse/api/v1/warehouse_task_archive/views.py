@@ -1,0 +1,67 @@
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+
+from access.permissions import WarehousePermission
+
+from warehouse.models.warehouse_task_archive import (
+    WarehouseTaskArchive,
+)
+
+from .serializers import (
+    WarehouseTaskArchiveSerializer,
+)
+
+
+class WarehouseTaskArchiveListView(
+    generics.ListAPIView
+):
+
+    queryset = (
+        WarehouseTaskArchive.objects
+        .select_related(
+            "warehouse_task",
+            "warehouse_task__warehouse",
+            "warehouse_task__purchase_task",
+            "warehouse_task__purchase_task__created_by",
+            "warehouse_task__purchase_task__created_by__employee_profile",
+            "warehouse_task__product",
+            "warehouse_task__quality_control",
+            "warehouse_task__assigned_to",
+            "warehouse_task__assigned_to__employee",
+        )
+        .order_by("-archived_at")
+    )
+
+    serializer_class = WarehouseTaskArchiveSerializer
+
+    permission_classes = (
+        IsAuthenticated,
+        WarehousePermission,
+    )
+
+
+class WarehouseTaskArchiveDetailView(
+    generics.RetrieveAPIView
+):
+
+    queryset = (
+        WarehouseTaskArchive.objects
+        .select_related(
+            "warehouse_task",
+            "warehouse_task__warehouse",
+            "warehouse_task__purchase_task",
+            "warehouse_task__purchase_task__created_by",
+            "warehouse_task__purchase_task__created_by__employee_profile",
+            "warehouse_task__product",
+            "warehouse_task__quality_control",
+            "warehouse_task__assigned_to",
+            "warehouse_task__assigned_to__employee",
+        )
+    )
+
+    serializer_class = WarehouseTaskArchiveSerializer
+
+    permission_classes = (
+        IsAuthenticated,
+        WarehousePermission,
+    )
