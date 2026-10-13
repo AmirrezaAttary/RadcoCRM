@@ -73,32 +73,3 @@ class RefreshSerializer(TokenRefreshSerializer):
     Wrapper serializer for refresh token.
     """
     pass
-
-class ChangePasswordSerializer(serializers.Serializer):
-
-    user_id = serializers.IntegerField()
-    new_password = serializers.CharField(
-        write_only=True,
-        min_length=6,
-    )
-
-    def validate_user_id(self, value):
-        try:
-            user = User.objects.get(id=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError(
-                "کاربر موردنظر پیدا نشد."
-            )
-
-        self.user = user
-        return value
-
-    def save(self):
-        self.user.set_password(
-            self.validated_data["new_password"]
-        )
-        self.user.save(
-            update_fields=["password"]
-        )
-
-        return self.user

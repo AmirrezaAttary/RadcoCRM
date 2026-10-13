@@ -11,8 +11,6 @@ from access.purchase import PurchaseAccess
 from access.quality_control import QualityControlAccess
 
 
-
-
 class IsAdmin(BasePermission):
 
     def has_permission(self, request, view):
@@ -81,7 +79,7 @@ class InternalTaskModifyPermission(BasePermission):
             task=obj,
         )
         return True
-
+    
 class PurchasePermission(BasePermission):
 
     def has_permission(self, request, view):

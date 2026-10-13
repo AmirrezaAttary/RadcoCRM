@@ -1,8 +1,7 @@
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from accounts.models import User
-from access.authorization.drf import HasPermission
 
 from .serializer import (
     UserListSerializer,
@@ -12,62 +11,29 @@ from .serializer import (
 
 
 class UserListApi(generics.ListAPIView):
-
     queryset = User.objects.all()
-
     serializer_class = UserListSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-    )
+    permission_classes = (IsAuthenticated,)
 
 
 class UserCreateApi(generics.CreateAPIView):
-
     queryset = User.objects.all()
-
     serializer_class = UserCreateSerializer
-
-    required_permission = "users.create"
-
-    permission_classes = (
-        IsAuthenticated,
-        HasPermission,
-    )
+    permission_classes = (IsAdminUser,)
 
 
 class UserDetailApi(generics.RetrieveAPIView):
-
     queryset = User.objects.all()
-
     serializer_class = UserListSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-    )
+    permission_classes = (IsAdminUser,)
 
 
 class UserUpdateApi(generics.UpdateAPIView):
-
     queryset = User.objects.all()
-
     serializer_class = UserUpdateSerializer
-
-    required_permission = "users.update"
-
-    permission_classes = (
-        IsAuthenticated,
-        HasPermission,
-    )
+    permission_classes = (IsAdminUser,)
 
 
 class UserDeleteApi(generics.DestroyAPIView):
-
     queryset = User.objects.all()
-
-    required_permission = "users.delete"
-
-    permission_classes = (
-        IsAuthenticated,
-        HasPermission,
-    )
+    permission_classes = (IsAdminUser,)

@@ -12,7 +12,6 @@ class DepartmentListSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "order",
-            "active",
             "created_at",
             "updated_at",
         )
@@ -39,7 +38,6 @@ class DepartmentUpdateSerializer(serializers.ModelSerializer):
             "order",
         )
 
-
 class DepartmentDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -49,7 +47,6 @@ class DepartmentDetailSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "order",
-            "active",
             "created_at",
             "updated_at",
         )

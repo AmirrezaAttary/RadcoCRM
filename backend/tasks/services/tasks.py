@@ -25,12 +25,10 @@ from ..models import (
 )
 from .attachments import _create_attachments
 
-
 def _get_first_step(department):
     return DepartmentStep.objects.filter(
         department=department
     ).order_by("order").first()
-
 
 def _get_step_by_order(department, order):
     return DepartmentStep.objects.filter(
@@ -38,41 +36,24 @@ def _get_step_by_order(department, order):
         order=order,
     ).first()
 
-
 def _delete_task_step_deadline(*, task, department_step):
     TaskStepDeadline.objects.filter(
         task=task,
         department_step=department_step,
     ).delete()
 
-
 def _delete_task_deadlines(*, task):
     TaskStepDeadline.objects.filter(
         task=task
     ).delete()
 
-
 def _delete_deadlines_if_task_inactive(*, task):
     if task.status != Task.Status.IN_PROGRESS:
         _delete_task_deadlines(task=task)
 
-
 def _ensure_task_workflow_active(*, task):
-    if not task.active:
-        raise InvalidTaskActionError(
-            "این تسک غیرفعال است و امکان انجام عملیات روی آن وجود ندارد."
-        )
-
-    if not task.department.active:
-        raise InvalidTaskActionError(
-            "دپارتمان این تسک غیرفعال است و امکان انجام عملیات روی آن وجود ندارد."
-        )
-
-    if not task.current_step.active:
-        raise InvalidTaskActionError(
-            "مرحله فعلی این تسک غیرفعال است و امکان انجام عملیات روی آن وجود ندارد."
-        )
-
+    # بررسی فیلدهای active طبق درخواست حذف شده است.
+    return None
 
 def _ensure_employee_active_for_department(*, employee, department):
     membership = (
@@ -90,13 +71,7 @@ def _ensure_employee_active_for_department(*, employee, department):
             "این کارمند عضو دپارتمان تسک نیست."
         )
 
-    if not membership.active:
-        raise InvalidTaskActionError(
-            "کارمند مسئول این تسک در این دپارتمان غیرفعال است."
-        )
-
     return membership
-
 
 def _ensure_task_assigned_employee_active(*, task, employee):
     if not task.assigned_employee.filter(
@@ -110,7 +85,6 @@ def _ensure_task_assigned_employee_active(*, task, employee):
         employee=employee,
         department=task.department,
     )
-
 
 def _validate_assigned_employees(department, assigned_employee):
     assigned_employee = list(assigned_employee)
@@ -149,20 +123,7 @@ def _validate_assigned_employees(department, assigned_employee):
             "یک یا چند کارمند انتخاب‌شده عضو این دپارتمان نیستند."
         )
 
-    inactive_employee_ids = {
-        employee_id
-        for employee_id, membership
-        in memberships_by_employee.items()
-        if not membership.active
-    }
-
-    if inactive_employee_ids:
-        raise InvalidTaskActionError(
-            "یک یا چند کارمند انتخاب‌شده در این دپارتمان غیرفعال هستند."
-        )
-
     return assigned_employee
-
 
 def _create_customer_score(*, task, created_by, score, reason):
     if not task.case or not task.case.customer:
@@ -192,10 +153,8 @@ def _create_customer_score(*, task, created_by, score, reason):
         reason=reason.strip(),
     )
 
-
 def _serialize_datetime(value):
     return value.isoformat() if value else None
-
 
 def _create_task_archive(*, task, final_action_by):
     task = (
@@ -207,14 +166,14 @@ def _create_task_archive(*, task, final_action_by):
             "department",
             "current_step",
             "created_by",
-            "created_by__profile",
+            "created_by__employee_profile",
         )
         .prefetch_related(
             "case__resources",
             "department__steps",
-            "assigned_employee__user__profile",
+            "assigned_employee__user__employee_profile",
             "step_logs__step",
-            "step_logs__employee__user__profile",
+            "step_logs__employee__user__employee_profile",
             "step_logs__attachments",
             "attachments",
             "step_deadlines__department_step",
@@ -255,8 +214,8 @@ def _create_task_archive(*, task, final_action_by):
         assigned_employees.append({
             "id": employee.id,
             "full_name": (
-                employee.user.profile.full_name
-                if employee.user and employee.user.profile
+                employee.user.employee_profile.full_name
+                if employee.user and employee.user.employee_profile
                 else ""
             ),
             "user_id": user.id if user else None,
@@ -276,8 +235,8 @@ def _create_task_archive(*, task, final_action_by):
             employees.append({
                 "id": employee.id,
                 "full_name": (
-                    employee.user.profile.full_name
-                    if employee.user and employee.user.profile
+                    employee.user.employee_profile.full_name
+                    if employee.user and employee.user.employee_profile
                     else ""
                 ),
                 "user_id": user.id if user else None,
@@ -413,10 +372,10 @@ def _create_task_archive(*, task, final_action_by):
                     else None
                 ),
                 "created_by_full_name": (
-                    created_by.user.profile.full_name
+                    created_by.user.employee_profile.full_name
                     if created_by
                     and created_by.user
-                    and created_by.user.profile
+                    and created_by.user.employee_profile
                     else None
                 ),
                 "created_at": _serialize_datetime(
@@ -441,14 +400,14 @@ def _create_task_archive(*, task, final_action_by):
     created_by_full_name = None
 
     if created_by:
-        profile = getattr(
+        employee_profile = getattr(
             created_by,
-            "profile",
+            "employee_profile",
             None,
         )
 
-        if profile:
-            created_by_full_name = profile.full_name
+        if employee_profile:
+            created_by_full_name = employee_profile.full_name
 
     final_action_by_id = None
     final_action_by_username = None
@@ -470,9 +429,9 @@ def _create_task_archive(*, task, final_action_by):
         )
 
         final_action_by_full_name = (
-            final_action_by.user.profile.full_name
+            final_action_by.user.employee_profile.full_name
             if final_action_by.user
-            and final_action_by.user.profile
+            and final_action_by.user.employee_profile
             else None
         )
 
@@ -575,7 +534,6 @@ def _create_task_archive(*, task, final_action_by):
         final_action_by_full_name=final_action_by_full_name,
     )
 
-
 @transaction.atomic
 def create_task(
     *,
@@ -587,34 +545,23 @@ def create_task(
     created_by,
     files=None,
 ):
-    if case is not None and not case.active:
-        raise InvalidTaskActionError(
-            "این پرونده غیرفعال است و امکان ایجاد تسک برای آن وجود ندارد."
-        )
-
-    if not department.active:
-        raise InvalidTaskActionError(
-            "دپارتمان غیرفعال است و امکان ایجاد تسک در آن وجود ندارد."
-        )
-
     assigned_employee = _validate_assigned_employees(
         department=department,
         assigned_employee=assigned_employee,
     )
 
     if case is not None:
-        has_active_task = (
+        has_in_progress_task = (
             Task.objects
             .select_for_update()
             .filter(
                 case=case,
                 status=Task.Status.IN_PROGRESS,
-                active=True,
             )
             .exists()
         )
 
-        if has_active_task:
+        if has_in_progress_task:
             raise ActiveTaskExistsError(
                 "این پرونده در حال حاضر یک تسک فعال دارد."
             )
@@ -624,11 +571,6 @@ def create_task(
     if first_step is None:
         raise InvalidTaskActionError(
             "این دپارتمان هیچ مرحله‌ای ندارد."
-        )
-
-    if not first_step.active:
-        raise InvalidTaskActionError(
-            "اولین مرحله این دپارتمان غیرفعال است و امکان ایجاد تسک وجود ندارد."
         )
 
     task = Task.objects.create(
@@ -663,7 +605,6 @@ def create_task(
         )
 
     return task
-
 
 @transaction.atomic
 def advance_step(
@@ -705,11 +646,6 @@ def advance_step(
         task.department,
         current_step.order + 1,
     )
-
-    if next_step is not None and not next_step.active:
-        raise InvalidTaskActionError(
-            "مرحله بعدی این تسک غیرفعال است و امکان انتقال به آن وجود ندارد."
-        )
 
     step_log = TaskStepLog.objects.create(
         task=task,
@@ -784,7 +720,6 @@ def advance_step(
         )
 
     return task
-
 
 @transaction.atomic
 def complete_task(
@@ -882,7 +817,6 @@ def complete_task(
 
     return task
 
-
 @transaction.atomic
 def revert_step(
     *,
@@ -932,11 +866,6 @@ def revert_step(
             "مرحله قبلی برای این تسک پیدا نشد."
         )
 
-    if not previous_step.active:
-        raise InvalidTaskActionError(
-            "مرحله قبلی این تسک غیرفعال است و امکان بازگشت به آن وجود ندارد."
-        )
-
     step_log = TaskStepLog.objects.create(
         task=task,
         step=current_step,
@@ -968,7 +897,6 @@ def revert_step(
     )
 
     return task
-
 
 @transaction.atomic
 def cancel_task(
@@ -1029,7 +957,6 @@ def cancel_task(
 
     return task
 
-
 @transaction.atomic
 def sell_task(
     *,
@@ -1089,7 +1016,6 @@ def sell_task(
 
     return task
 
-
 def set_task_step_deadline(
     task_id,
     department_step_id,
@@ -1118,11 +1044,6 @@ def set_task_step_deadline(
             "این مرحله متعلق به دپارتمان تسک نیست."
         )
 
-    if not department_step.active:
-        raise InvalidTaskActionError(
-            "این مرحله غیرفعال است و امکان ایجاد Deadline وجود ندارد."
-        )
-
     obj, _ = TaskStepDeadline.objects.update_or_create(
         task=task,
         department_step=department_step,
@@ -1134,7 +1055,6 @@ def set_task_step_deadline(
 
     return obj
 
-
 def get_task_step_deadline(
     task_id,
     department_step_id,
@@ -1144,7 +1064,6 @@ def get_task_step_deadline(
         task_id=task_id,
         department_step_id=department_step_id,
     )
-
 
 @transaction.atomic
 def reopen_task(*, task):
@@ -1172,18 +1091,17 @@ def reopen_task(*, task):
         )
 
     if task.case_id is not None:
-        has_active_task = (
+        has_in_progress_task = (
             Task.objects
             .filter(
                 case_id=task.case_id,
                 status=Task.Status.IN_PROGRESS,
-                active=True,
             )
             .exclude(pk=task.pk)
             .exists()
         )
 
-        if has_active_task:
+        if has_in_progress_task:
             raise ActiveTaskExistsError(
                 "این پرونده در حال حاضر یک تسک فعال دارد."
             )
@@ -1201,7 +1119,6 @@ def reopen_task(*, task):
 
     return task
 
-
 @transaction.atomic
 def deactivate_task(*, task):
     task = (
@@ -1209,11 +1126,6 @@ def deactivate_task(*, task):
         .select_for_update()
         .get(pk=task.pk)
     )
-
-    if not task.active:
-        raise InvalidTaskActionError(
-            "این تسک از قبل غیرفعال است."
-        )
 
     _delete_task_deadlines(
         task=task
@@ -1230,7 +1142,6 @@ def deactivate_task(*, task):
 
     return task
 
-
 @transaction.atomic
 def activate_task(*, task):
     task = (
@@ -1238,11 +1149,6 @@ def activate_task(*, task):
         .select_for_update()
         .get(pk=task.pk)
     )
-
-    if task.active:
-        raise InvalidTaskActionError(
-            "این تسک از قبل فعال است."
-        )
 
     task.active = True
 
@@ -1255,7 +1161,6 @@ def activate_task(*, task):
 
     return task
 
-
 @transaction.atomic
 def deactivate_department(*, department):
     department = (
@@ -1263,11 +1168,6 @@ def deactivate_department(*, department):
         .select_for_update()
         .get(pk=department.pk)
     )
-
-    if not department.active:
-        raise InvalidTaskActionError(
-            "این دپارتمان از قبل غیرفعال است."
-        )
 
     TaskStepDeadline.objects.filter(
         task__department=department,
@@ -1284,7 +1184,6 @@ def deactivate_department(*, department):
 
     return department
 
-
 @transaction.atomic
 def activate_department(*, department):
     department = (
@@ -1292,11 +1191,6 @@ def activate_department(*, department):
         .select_for_update()
         .get(pk=department.pk)
     )
-
-    if department.active:
-        raise InvalidTaskActionError(
-            "این دپارتمان از قبل فعال است."
-        )
 
     department.active = True
 
@@ -1309,7 +1203,6 @@ def activate_department(*, department):
 
     return department
 
-
 @transaction.atomic
 def deactivate_department_step(*, department_step):
     department_step = (
@@ -1318,11 +1211,6 @@ def deactivate_department_step(*, department_step):
         .select_related("department")
         .get(pk=department_step.pk)
     )
-
-    if not department_step.active:
-        raise InvalidTaskActionError(
-            "این مرحله از قبل غیرفعال است."
-        )
 
     TaskStepDeadline.objects.filter(
         department_step=department_step,
@@ -1339,7 +1227,6 @@ def deactivate_department_step(*, department_step):
 
     return department_step
 
-
 @transaction.atomic
 def activate_department_step(*, department_step):
     department_step = (
@@ -1348,11 +1235,6 @@ def activate_department_step(*, department_step):
         .select_related("department")
         .get(pk=department_step.pk)
     )
-
-    if department_step.active:
-        raise InvalidTaskActionError(
-            "این مرحله از قبل فعال است."
-        )
 
     department_step.active = True
 
@@ -1364,7 +1246,6 @@ def activate_department_step(*, department_step):
     )
 
     return department_step
-
 
 @transaction.atomic
 def deactivate_department_employee(
@@ -1389,11 +1270,6 @@ def deactivate_department_employee(
     if department_employee is None:
         raise EmployeeNotInDepartmentError(
             "این کارمند عضو این دپارتمان نیست."
-        )
-
-    if not department_employee.active:
-        raise InvalidTaskActionError(
-            "عضویت این کارمند در دپارتمان از قبل غیرفعال است."
         )
 
     tasks = (
@@ -1434,23 +1310,21 @@ def deactivate_department_employee(
             if employee.id != employee_id
         ]
 
-        has_active_assigned_employee = (
+        has_remaining_assigned_employee = (
             DepartmentEmployee.objects
             .filter(
                 department_id=department_id,
                 employee_id__in=remaining_employee_ids,
-                active=True,
             )
             .exists()
         )
 
-        if not has_active_assigned_employee:
+        if not has_remaining_assigned_employee:
             _delete_task_deadlines(
                 task=task
             )
 
     return department_employee
-
 
 @transaction.atomic
 def activate_department_employee(
@@ -1477,11 +1351,6 @@ def activate_department_employee(
             "این کارمند عضو این دپارتمان نیست."
         )
 
-    if department_employee.active:
-        raise InvalidTaskActionError(
-            "عضویت این کارمند در دپارتمان از قبل فعال است."
-        )
-
     department_employee.active = True
 
     department_employee.save(
@@ -1493,7 +1362,6 @@ def activate_department_employee(
 
     return department_employee
 
-
 @transaction.atomic
 def deactivate_case(*, case):
     case = (
@@ -1501,11 +1369,6 @@ def deactivate_case(*, case):
         .select_for_update()
         .get(pk=case.pk)
     )
-
-    if not case.active:
-        raise InvalidTaskActionError(
-            "این پرونده از قبل غیرفعال است."
-        )
 
     case.active = False
 
@@ -1518,7 +1381,6 @@ def deactivate_case(*, case):
 
     return case
 
-
 @transaction.atomic
 def activate_case(*, case):
     case = (
@@ -1526,11 +1388,6 @@ def activate_case(*, case):
         .select_for_update()
         .get(pk=case.pk)
     )
-
-    if case.active:
-        raise InvalidTaskActionError(
-            "این پرونده از قبل فعال است."
-        )
 
     case.active = True
 

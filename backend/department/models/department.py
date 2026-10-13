@@ -17,12 +17,6 @@ class Department(models.Model):
         blank=True,
         null=True
     )
-    
-    active = models.BooleanField(
-        default=True,
-        verbose_name="فعال",
-    )
-
 
     created_at = models.DateTimeField(
         auto_now_add=True

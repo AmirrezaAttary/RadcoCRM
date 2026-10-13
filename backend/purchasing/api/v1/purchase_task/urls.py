@@ -9,8 +9,6 @@ from .views import (
     PurchaseTaskHistoryDetailView,
     PurchaseTaskHistoryListView,
     PurchaseTaskStatusView,
-    PurchaseTaskActivateView,
-    PurchaseTaskDeactivateView,
 )
 
 urlpatterns = [
@@ -28,16 +26,6 @@ urlpatterns = [
         "<int:pk>/",
         PurchaseTaskDetailView.as_view(),
         name="purchase-task-detail",
-    ),
-    path(
-        "<int:pk>/activate/",
-        PurchaseTaskActivateView.as_view(),
-        name="purchase-task-activate",
-    ),
-    path(
-        "<int:pk>/deactivate/",
-        PurchaseTaskDeactivateView.as_view(),
-        name="purchase-task-deactivate",
     ),
     path(
         "<int:pk>/advance/",

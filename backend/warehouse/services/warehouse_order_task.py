@@ -117,6 +117,8 @@ class OrderTaskService:
             else None
         )
 
+        # اطلاعات انجام‌دهنده
+        # نام از Employee.full_name خوانده می‌شود
         performed_by_data = None
 
         if (
@@ -129,13 +131,15 @@ class OrderTaskService:
             performed_by_data = {
                 "id": order_task.performed_by.id,
                 "employee_id": employee.id,
-                "full_name": employee.user.profile.full_name,
+                "full_name": employee.full_name,
             }
 
+        # کارمندان مسئول تسک
+        # دیگر از User.profile استفاده نمی‌شود
         assigned_employees_data = [
             {
                 "id": employee.id,
-                "full_name": employee.user.profile.full_name,
+                "full_name": employee.full_name,
             }
             for employee in order_task.assigned_employee.all()
         ]
@@ -145,23 +149,38 @@ class OrderTaskService:
         items_data = [
             {
                 "id": item.id,
+
                 "product_id": item.product_id,
+
                 "product_name": (
                     item.product.name
                     if item.product
                     else None
                 ),
+
                 "quantity": item.quantity,
-                "completed_quantity": item.completed_quantity,
+
+                "completed_quantity": (
+                    item.completed_quantity
+                ),
+
                 "product_sale_price": (
                     str(item.product_sale_price)
                     if item.product_sale_price is not None
                     else None
                 ),
+
                 "status": item.status,
-                "status_display": item.get_status_display(),
+
+                "status_display": (
+                    item.get_status_display()
+                ),
+
                 "error_message": item.error_message,
-                "stock_transaction_id": item.stock_transaction_id,
+
+                "stock_transaction_id": (
+                    item.stock_transaction_id
+                ),
             }
             for item in order_task.items.all()
         ]
@@ -368,17 +387,6 @@ class OrderTaskService:
             )
             .get(pk=order_task.pk)
         )
-
-        if not order_task.active:
-
-            OrderTaskDeadline.objects.filter(
-                order_task=order_task,
-            ).delete()
-
-            if status is not None:
-                raise ValueError(
-                    "این تسک غیرفعال است و امکان تغییر وضعیت آن وجود ندارد."
-                )
 
         new_performed_by = (
             performed_by
@@ -644,7 +652,7 @@ class OrderTaskService:
             )
 
             OrderTaskDeadline.objects.filter(
-                order_task=order_task,
+                order_task=order_task
             ).delete()
 
             order_task = (
@@ -660,13 +668,10 @@ class OrderTaskService:
                     "performed_by",
                     "performed_by__employee",
                     "performed_by__employee__user",
-                    "performed_by__employee__user__profile",
                     "product",
                 )
                 .prefetch_related(
                     "assigned_employee",
-                    "assigned_employee__user",
-                    "assigned_employee__user__profile",
                     "items__product",
                     "items__stock_transaction",
                 )
@@ -676,65 +681,5 @@ class OrderTaskService:
             OrderTaskService._create_archive(
                 order_task
             )
-
-        return order_task
-
-    @staticmethod
-    @transaction.atomic
-    def deactivate(
-        *,
-        order_task,
-    ):
-
-        order_task = (
-            OrderTask.objects
-            .select_for_update()
-            .get(pk=order_task.pk)
-        )
-
-        if not order_task.active:
-            raise ValueError(
-                "این تسک از قبل غیرفعال است."
-            )
-
-        order_task.active = False
-
-        order_task.save(
-            update_fields=[
-                "active",
-            ]
-        )
-
-        OrderTaskDeadline.objects.filter(
-            order_task=order_task,
-        ).delete()
-
-        return order_task
-
-    @staticmethod
-    @transaction.atomic
-    def activate(
-        *,
-        order_task,
-    ):
-
-        order_task = (
-            OrderTask.objects
-            .select_for_update()
-            .get(pk=order_task.pk)
-        )
-
-        if order_task.active:
-            raise ValueError(
-                "این تسک از قبل فعال است."
-            )
-
-        order_task.active = True
-
-        order_task.save(
-            update_fields=[
-                "active",
-            ]
-        )
 
         return order_task

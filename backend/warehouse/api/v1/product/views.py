@@ -4,29 +4,31 @@ from rest_framework.generics import (
 )
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from warehouse.models.product import Product, ProductCategory
 from warehouse.api.v1.product.serializers import ProductSerializer, ProductCategorySerializer, ProductInitSerializer
 from access.permissions import WarehousePermission
 
 
+# ── ProductCategory ──────────────────────────────────────────
 
 class ProductCategoryListView(ListAPIView):
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
-    permission_classes = [WarehousePermission]
+    permission_classes = [IsAuthenticated]
 
 
 class ProductCategoryCreateView(CreateAPIView):
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
-    permission_classes = [WarehousePermission]
+    permission_classes = [IsAuthenticated]
 
 
 class ProductCategoryRetrieveView(RetrieveAPIView):
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
-    permission_classes = [WarehousePermission]
+    permission_classes = [IsAuthenticated]
 
 
 class ProductCategoryUpdateView(UpdateAPIView):
@@ -41,6 +43,7 @@ class ProductCategoryDeleteView(DestroyAPIView):
     permission_classes = [WarehousePermission]
 
 
+# ── Product ──────────────────────────────────────────────────
 
 class ProductListView(ListAPIView):
     queryset = Product.objects.select_related(
@@ -48,13 +51,13 @@ class ProductListView(ListAPIView):
         "volume_unit", "area_unit", "count_unit"
     ).all()
     serializer_class = ProductSerializer
-    permission_classes = [WarehousePermission]
+    permission_classes = [IsAuthenticated]
 
 
 class ProductCreateView(CreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [WarehousePermission]
+    permission_classes = [IsAuthenticated]
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -69,7 +72,7 @@ class ProductRetrieveView(RetrieveAPIView):
         "volume_unit", "area_unit", "count_unit"
     ).all()
     serializer_class = ProductSerializer
-    permission_classes = [WarehousePermission]
+    permission_classes = [IsAuthenticated]
 
 
 class ProductUpdateView(UpdateAPIView):
@@ -93,7 +96,7 @@ UNIT_SCHEMAS = {
 }
 class ProductInitView(CreateAPIView):
     serializer_class = ProductInitSerializer
-    permission_classes = [WarehousePermission]
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

@@ -10,11 +10,6 @@ class EmployeeListSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
-    full_name = serializers.CharField(
-        source="user.profile.full_name",
-        read_only=True,
-    )
-
     class Meta:
         model = Employee
         fields = (
@@ -24,20 +19,23 @@ class EmployeeListSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+    def validate_user(self, user):
+
+        if user.type != User.UserType.EMPLOYEE:
+            raise serializers.ValidationError(
+                "فقط کاربرانِ کارمند می‌توانند پروفایل کارمندی داشته باشند."
+            )
+
+        return user
 
 
 class EmployeeCreateSerializer(serializers.ModelSerializer):
-
-    user = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(
-            type=User.UserType.EMPLOYEE,
-        ),
-    )
 
     class Meta:
         model = Employee
         fields = (
             "user",
+            "full_name",
         )
 
 
@@ -45,4 +43,6 @@ class EmployeeUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Employee
-        fields = ()
+        fields = (
+            "full_name",
+        )

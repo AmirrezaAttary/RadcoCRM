@@ -18,8 +18,6 @@ from .serializers import (
     PurchaseTaskActionSerializer,
     PurchaseTaskHistorySerializer,
     PurchaseTaskStatusSerializer,
-    PurchaseTaskActivateSerializer,
-    PurchaseTaskDeactivateSerializer,
 )
 
 
@@ -149,133 +147,9 @@ class PurchaseTaskDetailView(generics.RetrieveAPIView):
         )
 
 
-class PurchaseTaskActivateView(generics.GenericAPIView):
-
-    queryset = (
-        PurchaseTask.objects
-        .select_related(
-            "warehouse",
-            "product",
-            "process_step",
-            "created_by",
-        )
-    )
-
-    serializer_class = PurchaseTaskActivateSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-        PurchasePermission,
-    )
-
-    def post(self, request, pk):
-
-        task = self.get_object()
-
-        serializer = self.get_serializer(
-            data=request.data
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        try:
-            task = PurchaseService.activate(
-                task=task
-            )
-
-        except DjangoValidationError as exc:
-            return Response(
-                {
-                    "detail": exc.message
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        response_serializer = PurchaseTaskSerializer(
-            task,
-            context=self.get_serializer_context(),
-        )
-
-        return Response(
-            {
-                "detail": "تسک خرید با موفقیت فعال شد.",
-                "task": response_serializer.data,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class PurchaseTaskDeactivateView(generics.GenericAPIView):
-
-    queryset = (
-        PurchaseTask.objects
-        .select_related(
-            "warehouse",
-            "product",
-            "process_step",
-            "created_by",
-        )
-    )
-
-    serializer_class = PurchaseTaskDeactivateSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-        PurchasePermission,
-    )
-
-    def post(self, request, pk):
-
-        task = self.get_object()
-
-        serializer = self.get_serializer(
-            data=request.data
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        try:
-            task = PurchaseService.deactivate(
-                task=task
-            )
-
-        except DjangoValidationError as exc:
-            return Response(
-                {
-                    "detail": exc.message
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        response_serializer = PurchaseTaskSerializer(
-            task,
-            context=self.get_serializer_context(),
-        )
-
-        return Response(
-            {
-                "detail": "تسک خرید با موفقیت غیرفعال شد.",
-                "task": response_serializer.data,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
 class PurchaseTaskAdvanceView(generics.GenericAPIView):
 
-    queryset = (
-        PurchaseTask.objects
-        .select_related(
-            "warehouse",
-            "product",
-            "process_step",
-            "created_by",
-        )
-    )
+    queryset = PurchaseTask.objects.all()
 
     serializer_class = PurchaseTaskActionSerializer
 
@@ -304,21 +178,12 @@ class PurchaseTaskAdvanceView(generics.GenericAPIView):
             raise_exception=True
         )
 
-        try:
-            task, attachment = PurchaseService.advance_task(
-                task=task,
-                employee=serializer.validated_data["created_by"],
-                note=serializer.validated_data.get("note"),
-                file=serializer.validated_data.get("file"),
-            )
-
-        except DjangoValidationError as exc:
-            return Response(
-                {
-                    "detail": exc.message
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        task, attachment = PurchaseService.advance_task(
+            task=task,
+            employee=serializer.validated_data["created_by"],
+            note=serializer.validated_data.get("note"),
+            file=serializer.validated_data.get("file"),
+        )
 
         return Response(
             {
@@ -335,15 +200,7 @@ class PurchaseTaskAdvanceView(generics.GenericAPIView):
 
 class PurchaseTaskRevertView(generics.GenericAPIView):
 
-    queryset = (
-        PurchaseTask.objects
-        .select_related(
-            "warehouse",
-            "product",
-            "process_step",
-            "created_by",
-        )
-    )
+    queryset = PurchaseTask.objects.all()
 
     serializer_class = PurchaseTaskActionSerializer
 
@@ -372,21 +229,12 @@ class PurchaseTaskRevertView(generics.GenericAPIView):
             raise_exception=True
         )
 
-        try:
-            task, attachment = PurchaseService.revert_task(
-                task=task,
-                employee=serializer.validated_data["created_by"],
-                note=serializer.validated_data.get("note"),
-                file=serializer.validated_data.get("file"),
-            )
-
-        except DjangoValidationError as exc:
-            return Response(
-                {
-                    "detail": exc.message
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        task, attachment = PurchaseService.revert_task(
+            task=task,
+            employee=serializer.validated_data["created_by"],
+            note=serializer.validated_data.get("note"),
+            file=serializer.validated_data.get("file"),
+        )
 
         return Response(
             {

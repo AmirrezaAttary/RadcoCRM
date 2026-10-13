@@ -21,11 +21,6 @@ class Customer(models.Model):
         default=CustomerStatus.POTENTIAL,
         verbose_name="وضعیت مشتری",
     )
-    
-    active = models.BooleanField(
-        default=True,
-        verbose_name="فعال",
-    )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

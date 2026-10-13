@@ -46,8 +46,7 @@ urlpatterns = [
     path('purchasing/', include('purchasing.urls')),
     path('quality_control/', include('quality_control.urls')),
     path('search/', include('search.urls')),
-    path('access/', include('access.urls')),
-    path('absence/', include('absence.urls')),
+    path('document/', include('document.urls')),
 ]
 
 if settings.DEBUG:

@@ -9,6 +9,10 @@ class Employee(models.Model):
         on_delete=models.CASCADE,
         related_name="employee_profile"
     )
+
+    full_name = models.CharField(
+        max_length=255
+    )
     
     is_active = models.BooleanField(
         default=True,

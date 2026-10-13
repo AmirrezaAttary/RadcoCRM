@@ -6,7 +6,7 @@ from purchasing.models.purchase_employee import PurchaseProcessEmployee
 class PurchaseProcessEmployeeSerializer(serializers.ModelSerializer):
 
     employee_name = serializers.CharField(
-        source="employee.user.profile.full_name",
+        source="employee.full_name",
         read_only=True,
     )
 

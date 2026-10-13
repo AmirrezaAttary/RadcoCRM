@@ -12,8 +12,6 @@ from ....models.quality_control import QualityControl
 from .serializers import (
     QualityControlSerializer,
     QualityControlActionSerializer,
-    QualityControlActivateSerializer,
-    QualityControlDeactivateSerializer,
 )
 
 from quality_control.models.employee import QualityControlEmployee
@@ -193,9 +191,6 @@ class QualityControlApproveView(
 
                 "status":
                     quality_control.status,
-
-                "active":
-                    quality_control.active,
             },
             status=status.HTTP_200_OK,
         )
@@ -209,9 +204,9 @@ class QualityControlRejectView(
         QualityControl.objects
         .select_related(
             "purchase_task",
-            "purchase_task__process_step",
             "purchase_task__warehouse",
             "purchase_task__product",
+            "purchase_task__process_step",
         )
     )
 
@@ -326,146 +321,11 @@ class QualityControlRejectView(
                 "status":
                     quality_control.status,
 
-                "active":
-                    quality_control.active,
-
                 "current_step":
                     purchase_task.process_step.title,
 
                 "current_step_order":
                     purchase_task.process_step.order,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class QualityControlActivateView(
-    generics.GenericAPIView
-):
-
-    queryset = (
-        QualityControl.objects
-        .select_related(
-            "purchase_task",
-            "purchase_task__warehouse",
-            "purchase_task__product",
-            "purchase_task__process_step",
-            "checked_by",
-            "checked_by__user",
-        )
-    )
-
-    serializer_class = QualityControlActivateSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-        QualityControlPermission,
-    )
-
-    def post(self, request, pk):
-
-        quality_control = self.get_object()
-
-        serializer = self.get_serializer(
-            data=request.data
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        try:
-
-            quality_control = (
-                QualityControlService.activate(
-                    quality_control
-                )
-            )
-
-        except DjangoValidationError as exc:
-
-            return Response(
-                {
-                    "detail": exc.message
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response(
-            {
-                "detail":
-                    "کنترل کیفیت با موفقیت فعال شد.",
-
-                "quality_control":
-                    QualityControlSerializer(
-                        quality_control
-                    ).data,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class QualityControlDeactivateView(
-    generics.GenericAPIView
-):
-
-    queryset = (
-        QualityControl.objects
-        .select_related(
-            "purchase_task",
-            "purchase_task__warehouse",
-            "purchase_task__product",
-            "purchase_task__process_step",
-            "checked_by",
-            "checked_by__user",
-        )
-    )
-
-    serializer_class = QualityControlDeactivateSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-        QualityControlPermission,
-    )
-
-    def post(self, request, pk):
-
-        quality_control = self.get_object()
-
-        serializer = self.get_serializer(
-            data=request.data
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        try:
-
-            quality_control = (
-                QualityControlService.deactivate(
-                    quality_control
-                )
-            )
-
-        except DjangoValidationError as exc:
-
-            return Response(
-                {
-                    "detail": exc.message
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response(
-            {
-                "detail":
-                    "کنترل کیفیت با موفقیت غیرفعال شد.",
-
-                "quality_control":
-                    QualityControlSerializer(
-                        quality_control
-                    ).data,
             },
             status=status.HTTP_200_OK,
         )

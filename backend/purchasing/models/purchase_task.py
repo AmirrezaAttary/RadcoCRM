@@ -74,11 +74,6 @@ class PurchaseTask(models.Model):
         default=Source.SYSTEM,
         verbose_name="منبع ایجاد"
     )
-    
-    active = models.BooleanField(
-        default=True,
-        verbose_name="فعال",
-    )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -6,10 +6,9 @@ from .views import (
     CustomerDetailApi,
     CustomerUpdateApi,
     CustomerDeleteApi,
-    CustomerActivateApi,
-    CustomerDeactivateApi,
     CustomerScoreListCreateView,
     CustomerScoreDetailView,
+
 )
 
 app_name = "customers"
@@ -30,17 +29,5 @@ urlpatterns = [
         "customers/<int:customer_id>/scores/<int:pk>/",
         CustomerScoreDetailView.as_view(),
         name="customer-score-detail",
-    ),
-    
-    path(
-        "customers/<int:pk>/activate/",
-        CustomerActivateApi.as_view(),
-        name="customer-activate",
-    ),
-
-    path(
-        "customers/<int:pk>/deactivate/",
-        CustomerDeactivateApi.as_view(),
-        name="customer-deactivate",
     ),
 ]

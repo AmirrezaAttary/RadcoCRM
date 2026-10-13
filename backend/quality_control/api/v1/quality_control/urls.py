@@ -5,8 +5,6 @@ from .views import (
     QualityControlDetailView,
     QualityControlApproveView,
     QualityControlRejectView,
-    QualityControlActivateView,
-    QualityControlDeactivateView,
 )
 
 
@@ -30,15 +28,5 @@ urlpatterns = [
         "<int:pk>/reject/",
         QualityControlRejectView.as_view(),
         name="quality-control-reject",
-    ),
-    path(
-        "<int:pk>/activate/",
-        QualityControlActivateView.as_view(),
-        name="quality-control-activate",
-    ),
-    path(
-        "<int:pk>/deactivate/",
-        QualityControlDeactivateView.as_view(),
-        name="quality-control-deactivate",
     ),
 ]

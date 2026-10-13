@@ -70,7 +70,6 @@ class WarehouseTaskSerializer(serializers.ModelSerializer):
             "assigned_to_name",
             "status",
             "status_display",
-            "active",
             "note",
             "file",
             "created_at",
@@ -95,7 +94,6 @@ class WarehouseTaskSerializer(serializers.ModelSerializer):
             "assigned_to_name",
             "status",
             "status_display",
-            "active",
             "created_at",
             "completed_at",
             "updated_at",
@@ -194,12 +192,4 @@ class WarehouseTaskCancelSerializer(serializers.Serializer):
 
 
 class WarehouseTaskReopenSerializer(serializers.Serializer):
-    pass
-
-
-class WarehouseTaskActivateSerializer(serializers.Serializer):
-    pass
-
-
-class WarehouseTaskDeactivateSerializer(serializers.Serializer):
     pass

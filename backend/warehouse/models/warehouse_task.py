@@ -61,11 +61,6 @@ class WarehouseTask(models.Model):
         default=Status.PENDING,
         verbose_name="وضعیت",
     )
-    
-    active = models.BooleanField(
-        default=True,
-        verbose_name="فعال",
-    )
 
     assigned_to = models.ForeignKey(
         WarehouseStaff,

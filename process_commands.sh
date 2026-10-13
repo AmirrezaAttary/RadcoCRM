@@ -45,11 +45,11 @@ while true
 do
     cd "$PROJECT" || exit 1
 
-    "$PYTHON" manage.py sync_permissions >> "$LOG" 2>&1
     "$PYTHON" manage.py process_overdue_scores >> "$LOG" 2>&1
     "$PYTHON" manage.py check_deadlines >> "$LOG" 2>&1
     "$PYTHON" manage.py check_internal_task_deadlines >> "$LOG" 2>&1
     "$PYTHON" manage.py process_internal_task_routines >> "$LOG" 2>&1
+
 
     sleep 3
 done

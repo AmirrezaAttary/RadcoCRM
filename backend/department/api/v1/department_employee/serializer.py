@@ -6,7 +6,7 @@ from department.models import DepartmentEmployee
 class DepartmentEmployeeListSerializer(serializers.ModelSerializer):
 
     employee_name = serializers.CharField(
-        source="employee.user.profile.full_name",
+        source="employee.full_name",
         read_only=True,
     )
 
@@ -24,9 +24,9 @@ class DepartmentEmployeeListSerializer(serializers.ModelSerializer):
             "employee_name",
             "department",
             "department_name",
-            "active",
             "created_at",
             "updated_at",
+            "is_manager",
         )
 
 
@@ -38,6 +38,7 @@ class DepartmentEmployeeCreateSerializer(serializers.ModelSerializer):
         fields = (
             "employee",
             "department",
+            "is_manager",
         )
 
 
@@ -48,76 +49,5 @@ class DepartmentEmployeeUpdateSerializer(serializers.ModelSerializer):
 
         fields = (
             "department",
-        )
-
-
-class DepartmentEmployeeDeactivateSerializer(
-    serializers.ModelSerializer
-):
-
-    employee_name = serializers.CharField(
-        source="employee.user.profile.full_name",
-        read_only=True,
-    )
-
-    department_name = serializers.CharField(
-        source="department.name",
-        read_only=True,
-    )
-
-    class Meta:
-        model = DepartmentEmployee
-
-        fields = (
-            "id",
-            "employee",
-            "employee_name",
-            "department",
-            "department_name",
-            "active",
-        )
-
-        read_only_fields = (
-            "id",
-            "employee",
-            "employee_name",
-            "department",
-            "department_name",
-            "active",
-        )
-
-
-class DepartmentEmployeeActivateSerializer(
-    serializers.ModelSerializer
-):
-
-    employee_name = serializers.CharField(
-        source="employee.user.profile.full_name",
-        read_only=True,
-    )
-
-    department_name = serializers.CharField(
-        source="department.name",
-        read_only=True,
-    )
-
-    class Meta:
-        model = DepartmentEmployee
-
-        fields = (
-            "id",
-            "employee",
-            "employee_name",
-            "department",
-            "department_name",
-            "active",
-        )
-
-        read_only_fields = (
-            "id",
-            "employee",
-            "employee_name",
-            "department",
-            "department_name",
-            "active",
+            "is_manager",
         )

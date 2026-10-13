@@ -141,7 +141,6 @@ class PurchaseService:
             source=PurchaseTask.Source.SYSTEM,
             created_by=None,
             status=PurchaseTask.Status.PENDING,
-            active=True,
         )
 
         PurchaseService._send_purchase_task_sms(
@@ -166,7 +165,6 @@ class PurchaseService:
             source=PurchaseTask.Source.MANUAL,
             created_by=created_by,
             status=PurchaseTask.Status.PENDING,
-            active=True,
         )
 
         PurchaseService._send_purchase_task_sms(
@@ -216,7 +214,6 @@ class PurchaseService:
             source=PurchaseTask.Source.INITIAL,
             created_by=created_by,
             status=PurchaseTask.Status.PENDING,
-            active=True,
         )
 
         PurchaseService._send_purchase_task_sms(
@@ -225,58 +222,6 @@ class PurchaseService:
         )
 
         return purchase_task
-
-    @staticmethod
-    @transaction.atomic
-    def activate(task):
-
-        task = (
-            PurchaseTask.objects
-            .select_for_update()
-            .get(pk=task.pk)
-        )
-
-        if task.active:
-            raise ValidationError(
-                "این تسک از قبل فعال است."
-            )
-
-        task.active = True
-
-        task.save(
-            update_fields=[
-                "active",
-                "updated_at",
-            ]
-        )
-
-        return task
-
-    @staticmethod
-    @transaction.atomic
-    def deactivate(task):
-
-        task = (
-            PurchaseTask.objects
-            .select_for_update()
-            .get(pk=task.pk)
-        )
-
-        if not task.active:
-            raise ValidationError(
-                "این تسک از قبل غیرفعال است."
-            )
-
-        task.active = False
-
-        task.save(
-            update_fields=[
-                "active",
-                "updated_at",
-            ]
-        )
-
-        return task
 
     @staticmethod
     def _create_quality_control(task):
@@ -294,9 +239,12 @@ class PurchaseService:
         file=None,
     ):
 
+        PurchaseTask.objects \
+            .select_for_update() \
+            .get(pk=task.pk)
+
         task = (
             PurchaseTask.objects
-            .select_for_update(of=("self",))
             .select_related(
                 "process_step",
                 "warehouse",
@@ -304,11 +252,6 @@ class PurchaseService:
             )
             .get(pk=task.pk)
         )
-
-        if not task.active:
-            raise ValidationError(
-                "این تسک غیرفعال است و امکان ادامه فرآیند خرید وجود ندارد."
-            )
 
         if task.status in [
             PurchaseTask.Status.COMPLETED,
@@ -387,9 +330,12 @@ class PurchaseService:
         file=None,
     ):
 
+        PurchaseTask.objects \
+            .select_for_update() \
+            .get(pk=task.pk)
+
         task = (
             PurchaseTask.objects
-            .select_for_update(of=("self",))
             .select_related(
                 "process_step",
                 "warehouse",
@@ -397,11 +343,6 @@ class PurchaseService:
             )
             .get(pk=task.pk)
         )
-
-        if not task.active:
-            raise ValidationError(
-                "این تسک غیرفعال است و امکان بازگشت در فرآیند خرید وجود ندارد."
-            )
 
         if task.status in [
             PurchaseTask.Status.COMPLETED,
@@ -455,9 +396,12 @@ class PurchaseService:
     @transaction.atomic
     def change_status(task, status):
 
+        PurchaseTask.objects \
+            .select_for_update() \
+            .get(pk=task.pk)
+
         task = (
             PurchaseTask.objects
-            .select_for_update(of=("self",))
             .select_related(
                 "process_step",
                 "warehouse",
@@ -465,11 +409,6 @@ class PurchaseService:
             )
             .get(pk=task.pk)
         )
-
-        if not task.active:
-            raise ValidationError(
-                "این تسک غیرفعال است و امکان تغییر وضعیت آن وجود ندارد."
-            )
 
         if task.status in [
             PurchaseTask.Status.COMPLETED,

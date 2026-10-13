@@ -23,7 +23,7 @@ class PurchaseProcessStepSerializer(serializers.ModelSerializer):
             {
                 "id": employee.id,
                 "employee_id": employee.employee.id,
-                "full_name": employee.employee.user.profile.full_name,
+                "full_name": employee.employee.full_name,
                 "is_active": employee.is_active,
             }
             for employee in obj.employees.select_related("employee").all()

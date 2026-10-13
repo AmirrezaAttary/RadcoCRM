@@ -54,14 +54,14 @@ class WarehouseTaskService:
 
         if created_by:
             created_by_full_name = getattr(
-                created_by.profile,
+                created_by,
                 "full_name",
                 None,
             )
 
         if not created_by_full_name and created_by_employee:
             created_by_full_name = getattr(
-                created_by_employee.user.profile,
+                created_by_employee,
                 "full_name",
                 None,
             )
@@ -187,7 +187,7 @@ class WarehouseTaskService:
             ),
 
             assigned_to_full_name=(
-                warehouse_staff.employee.user.profile.full_name
+                warehouse_staff.employee.full_name
                 if (
                     warehouse_staff
                     and warehouse_staff.employee
@@ -208,7 +208,7 @@ class WarehouseTaskService:
 
     @staticmethod
     @transaction.atomic
-    def activate(task):
+    def cancel_task(task, note=None):
 
         task = (
             WarehouseTask.objects
@@ -216,82 +216,21 @@ class WarehouseTaskService:
             .get(pk=task.pk)
         )
 
-        if task.active:
-            raise ValidationError(
-                "این تسک از قبل فعال است."
-            )
-
-        task.active = True
-
-        task.save(
-            update_fields=[
-                "active",
-                "updated_at",
-            ]
-        )
-
-        return task
-
-    @staticmethod
-    @transaction.atomic
-    def deactivate(task):
-
         task = (
             WarehouseTask.objects
-            .select_for_update()
-            .get(pk=task.pk)
-        )
-
-        if not task.active:
-            raise ValidationError(
-                "این تسک از قبل غیرفعال است."
-            )
-
-        task.active = False
-
-        task.save(
-            update_fields=[
-                "active",
-                "updated_at",
-            ]
-        )
-
-        return task
-
-    @staticmethod
-    @transaction.atomic
-    def cancel_task(
-        task,
-        note=None,
-    ):
-
-        task = (
-            WarehouseTask.objects
-            .select_for_update(of=("self",))
             .select_related(
                 "purchase_task",
                 "purchase_task__warehouse",
                 "purchase_task__product",
                 "purchase_task__created_by",
-                "purchase_task__created_by__profile",
-                "purchase_task__created_by__employee_profile",
-                "purchase_task__created_by__employee_profile__user",
-                "purchase_task__created_by__employee_profile__user__profile",
                 "quality_control",
                 "product",
                 "warehouse",
                 "assigned_to",
                 "assigned_to__employee",
-                "assigned_to__employee__user",
-                "assigned_to__employee__user__profile",
             )
             .get(pk=task.pk)
         )
-
-        if not task.active:
-            raise ValidationError(
-                "این تسک غیرفعال است و امکان لغو آن وجود ندارد."
-            )
 
         if task.status == WarehouseTask.Status.COMPLETED:
             raise ValidationError(
@@ -338,11 +277,6 @@ class WarehouseTaskService:
             .get(pk=task.pk)
         )
 
-        if not task.active:
-            raise ValidationError(
-                "این تسک غیرفعال است و امکان بازگردانی آن وجود ندارد."
-            )
-
         if task.status != WarehouseTask.Status.CANCELLED:
             raise ValidationError(
                 "فقط تسک لغو شده را می‌توان "
@@ -372,9 +306,12 @@ class WarehouseTaskService:
         file=None,
     ):
 
+        WarehouseTask.objects \
+            .select_for_update() \
+            .get(pk=task.pk)
+
         task = (
             WarehouseTask.objects
-            .select_for_update(of=("self",))
             .select_related(
                 "warehouse",
                 "product",
@@ -383,22 +320,11 @@ class WarehouseTaskService:
                 "purchase_task__warehouse",
                 "purchase_task__product",
                 "purchase_task__created_by",
-                "purchase_task__created_by__profile",
-                "purchase_task__created_by__employee_profile",
-                "purchase_task__created_by__employee_profile__user",
-                "purchase_task__created_by__employee_profile__user__profile",
                 "assigned_to",
                 "assigned_to__employee",
-                "assigned_to__employee__user",
-                "assigned_to__employee__user__profile",
             )
             .get(pk=task.pk)
         )
-
-        if not task.active:
-            raise ValidationError(
-                "این تسک غیرفعال است و امکان تکمیل آن وجود ندارد."
-            )
 
         if task.status == WarehouseTask.Status.COMPLETED:
             raise ValidationError(
@@ -570,16 +496,10 @@ class WarehouseTaskService:
                 "purchase_task__warehouse",
                 "purchase_task__product",
                 "purchase_task__created_by",
-                "purchase_task__created_by__profile",
-                "purchase_task__created_by__employee_profile",
-                "purchase_task__created_by__employee_profile__user",
-                "purchase_task__created_by__employee_profile__user__profile",
                 "quality_control",
                 "product",
                 "assigned_to",
                 "assigned_to__employee",
-                "assigned_to__employee__user",
-                "assigned_to__employee__user__profile",
             )
             .get(pk=task.pk)
         )
@@ -605,9 +525,12 @@ class WarehouseTaskService:
         file=None,
     ):
 
+        WarehouseTask.objects \
+            .select_for_update() \
+            .get(pk=task.pk)
+
         task = (
             WarehouseTask.objects
-            .select_for_update(of=("self",))
             .select_related(
                 "warehouse",
                 "product",
@@ -616,22 +539,11 @@ class WarehouseTaskService:
                 "purchase_task__warehouse",
                 "purchase_task__product",
                 "purchase_task__created_by",
-                "purchase_task__created_by__profile",
-                "purchase_task__created_by__employee_profile",
-                "purchase_task__created_by__employee_profile__user",
-                "purchase_task__created_by__employee_profile__user__profile",
                 "assigned_to",
                 "assigned_to__employee",
-                "assigned_to__employee__user",
-                "assigned_to__employee__user__profile",
             )
             .get(pk=task.pk)
         )
-
-        if not task.active:
-            raise ValidationError(
-                "این تسک غیرفعال است و امکان تکمیل آن وجود ندارد."
-            )
 
         if task.status == WarehouseTask.Status.COMPLETED:
             raise ValidationError(
@@ -718,8 +630,7 @@ class WarehouseTaskService:
 
         if minimum_stock > maximum_stock:
             raise ValidationError(
-                "حداقل موجودی نمی‌تواند بیشتر از "
-                "حداکثر موجودی باشد."
+                "حداقل موجودی نمی‌تواند بیشتر از حداکثر موجودی باشد."
             )
 
         if (
@@ -727,8 +638,7 @@ class WarehouseTaskService:
             != task.product_id
         ):
             raise ValidationError(
-                "کالای تسک انبار با کالای تسک خرید "
-                "مطابقت ندارد."
+                "کالای تسک انبار با کالای تسک خرید مطابقت ندارد."
             )
 
         if InventoryStock.objects.filter(
@@ -778,16 +688,10 @@ class WarehouseTaskService:
                 "purchase_task__warehouse",
                 "purchase_task__product",
                 "purchase_task__created_by",
-                "purchase_task__created_by__profile",
-                "purchase_task__created_by__employee_profile",
-                "purchase_task__created_by__employee_profile__user",
-                "purchase_task__created_by__employee_profile__user__profile",
                 "quality_control",
                 "product",
                 "assigned_to",
                 "assigned_to__employee",
-                "assigned_to__employee__user",
-                "assigned_to__employee__user__profile",
             )
             .get(pk=task.pk)
         )

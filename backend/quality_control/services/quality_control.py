@@ -123,9 +123,12 @@ class QualityControlService:
                 "تسک خرید مشخص نشده است."
             )
 
+        PurchaseTask.objects \
+            .select_for_update() \
+            .get(pk=purchase_task.pk)
+
         purchase_task = (
             PurchaseTask.objects
-            .select_for_update(of=("self",))
             .select_related(
                 "warehouse",
                 "product",
@@ -156,63 +159,12 @@ class QualityControlService:
         quality_control = QualityControl.objects.create(
             purchase_task=purchase_task,
             status=QualityControl.Status.PENDING,
-            active=True,
         )
 
         transaction.on_commit(
             lambda: QualityControlService._send_quality_control_sms(
                 quality_control=quality_control,
             )
-        )
-
-        return quality_control
-
-    @staticmethod
-    @transaction.atomic
-    def activate(quality_control):
-
-        quality_control = (
-            QualityControl.objects
-            .select_for_update()
-            .get(pk=quality_control.pk)
-        )
-
-        if quality_control.active:
-            raise ValidationError(
-                "این کنترل کیفیت از قبل فعال است."
-            )
-
-        quality_control.active = True
-
-        quality_control.save(
-            update_fields=[
-                "active",
-            ]
-        )
-
-        return quality_control
-
-    @staticmethod
-    @transaction.atomic
-    def deactivate(quality_control):
-
-        quality_control = (
-            QualityControl.objects
-            .select_for_update()
-            .get(pk=quality_control.pk)
-        )
-
-        if not quality_control.active:
-            raise ValidationError(
-                "این کنترل کیفیت از قبل غیرفعال است."
-            )
-
-        quality_control.active = False
-
-        quality_control.save(
-            update_fields=[
-                "active",
-            ]
         )
 
         return quality_control
@@ -226,9 +178,12 @@ class QualityControlService:
         file=None,
     ):
 
+        QualityControl.objects \
+            .select_for_update() \
+            .get(pk=quality_control.pk)
+
         quality_control = (
             QualityControl.objects
-            .select_for_update(of=("self",))
             .select_related(
                 "purchase_task",
                 "purchase_task__product",
@@ -236,11 +191,6 @@ class QualityControlService:
             )
             .get(pk=quality_control.pk)
         )
-
-        if not quality_control.active:
-            raise ValidationError(
-                "این کنترل کیفیت غیرفعال است و امکان تایید آن وجود ندارد."
-            )
 
         if quality_control.status != QualityControl.Status.PENDING:
             raise ValidationError(
@@ -298,7 +248,6 @@ class QualityControlService:
             product=purchase_task.product,
             expected_quantity=purchase_task.purchase_quantity,
             status=WarehouseTask.Status.PENDING,
-            active=True,
         )
 
         transaction.on_commit(
@@ -320,7 +269,7 @@ class QualityControlService:
 
         quality_control = (
             QualityControl.objects
-            .select_for_update(of=("self",))
+            .select_for_update()
             .select_related(
                 "purchase_task",
                 "purchase_task__process_step",
@@ -329,11 +278,6 @@ class QualityControlService:
             )
             .get(pk=quality_control.pk)
         )
-
-        if not quality_control.active:
-            raise ValidationError(
-                "این کنترل کیفیت غیرفعال است و امکان رد کردن آن وجود ندارد."
-            )
 
         if quality_control.status != QualityControl.Status.PENDING:
             raise ValidationError(
@@ -356,18 +300,6 @@ class QualityControlService:
                 "هیچ مرحله‌ای برای فرآیند خرید تعریف نشده است."
             )
 
-        purchase_task = quality_control.purchase_task
-
-        if not purchase_task:
-            raise ValidationError(
-                "تسک خرید برای کنترل کیفیت مشخص نشده است."
-            )
-
-        if not purchase_task.active:
-            raise ValidationError(
-                "تسک خرید مرتبط با این کنترل کیفیت غیرفعال است و امکان رد کردن کنترل کیفیت وجود ندارد."
-            )
-
         quality_control.status = QualityControl.Status.REJECTED
         quality_control.checked_by = checked_by
         quality_control.note = note
@@ -383,6 +315,8 @@ class QualityControlService:
                 "checked_at",
             ]
         )
+
+        purchase_task = quality_control.purchase_task
 
         purchase_task.process_step = first_step
         purchase_task.status = PurchaseTask.Status.IN_PROGRESS

@@ -19,7 +19,7 @@ class PurchaseTaskAttachmentListSerializer(serializers.ModelSerializer):
     )
 
     created_by_name = serializers.CharField(
-        source="created_by.employee.user.profile.full_name",
+        source="created_by.employee.full_name",
         read_only=True,
     )
 
@@ -117,7 +117,7 @@ class PurchaseTaskAttachmentDetailSerializer(serializers.ModelSerializer):
     )
 
     created_by_name = serializers.CharField(
-        source="created_by.employee.user.profile.full_name",
+        source="created_by.employee.full_name",
         read_only=True,
     )
 

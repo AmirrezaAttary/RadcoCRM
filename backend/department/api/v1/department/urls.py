@@ -6,8 +6,6 @@ from .view import (
     DepartmentDetailApi,
     DepartmentUpdateApi,
     DepartmentDeleteApi,
-    DepartmentActivateApi,
-    DepartmentDeactivateApi,
 )
 
 
@@ -41,18 +39,6 @@ urlpatterns = [
         "<int:pk>/delete/",
         DepartmentDeleteApi.as_view(),
         name="department-delete",
-    ),
-
-    path(
-        "<int:pk>/activate/",
-        DepartmentActivateApi.as_view(),
-        name="department-activate",
-    ),
-
-    path(
-        "<int:pk>/deactivate/",
-        DepartmentDeactivateApi.as_view(),
-        name="department-deactivate",
     ),
 
 ]

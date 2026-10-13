@@ -4,7 +4,6 @@ from .view import (
     LoginApi,
     MeApi,
     RefreshTokenApi,
-    ChangePasswordApi,
 )
 
 
@@ -25,12 +24,6 @@ urlpatterns = [
         "refresh/",
         RefreshTokenApi.as_view(),
         name="refresh",
-    ),
-    
-    path(
-        "change-password/",
-        ChangePasswordApi.as_view(),
-        name="change-password",
     ),
 
 ]

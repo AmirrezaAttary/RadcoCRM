@@ -12,9 +12,8 @@ class SmsService:
         )
 
     def send(self, number, message):
-        # return self.client.send_sms(
-        #     number,
-        #     message,
-        #     settings.SMS_IR_LINE_NUMBER,
-        # )
-        pass
+        return self.client.send_sms(
+            number,
+            message,
+            settings.SMS_IR_LINE_NUMBER,
+        )

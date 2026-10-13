@@ -16,7 +16,6 @@ class WarehouseListView(
 
     permission_classes = (
         IsAuthenticated,
-        WarehousePermission,
     )
 
 
@@ -40,7 +39,6 @@ class WarehouseRetrieveView(
 
     permission_classes = (
         IsAuthenticated,
-        WarehousePermission,
     )
 
 

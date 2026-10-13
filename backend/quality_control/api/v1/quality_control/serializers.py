@@ -5,10 +5,18 @@ from quality_control.models.quality_control import QualityControl
 
 class QualityControlSerializer(serializers.ModelSerializer):
 
+    # =========================================================
+    # Purchase Task
+    # =========================================================
+
     purchase_task_id = serializers.IntegerField(
         source="purchase_task.id",
         read_only=True,
     )
+
+    # =========================================================
+    # Warehouse
+    # =========================================================
 
     warehouse_id = serializers.IntegerField(
         source="purchase_task.warehouse.id",
@@ -25,6 +33,10 @@ class QualityControlSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    # =========================================================
+    # Product
+    # =========================================================
+
     product_id = serializers.IntegerField(
         source="purchase_task.product.id",
         read_only=True,
@@ -35,11 +47,18 @@ class QualityControlSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    # =========================================================
+    # Status
+    # =========================================================
+
     status_display = serializers.CharField(
         source="get_status_display",
         read_only=True,
     )
 
+    # =========================================================
+    # Checked By
+    # =========================================================
 
     checked_by_name = serializers.CharField(
         source="checked_by.user.username",
@@ -52,26 +71,32 @@ class QualityControlSerializer(serializers.ModelSerializer):
 
         fields = [
             "id",
+
+            # Purchase
             "purchase_task_id",
 
+            # Warehouse
             "warehouse_id",
             "warehouse_name",
             "warehouse_code",
 
+            # Product
             "product_id",
             "product_name",
 
+            # Status
             "status",
             "status_display",
 
-            "active",
-
+            # QC Data
             "note",
             "file",
 
+            # Checker
             "checked_by",
             "checked_by_name",
 
+            # Dates
             "created_at",
             "checked_at",
         ]
@@ -89,8 +114,6 @@ class QualityControlSerializer(serializers.ModelSerializer):
 
             "status",
             "status_display",
-
-            "active",
 
             "checked_by",
             "checked_by_name",
@@ -114,11 +137,3 @@ class QualityControlActionSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
     )
-
-
-class QualityControlActivateSerializer(serializers.Serializer):
-    pass
-
-
-class QualityControlDeactivateSerializer(serializers.Serializer):
-    pass

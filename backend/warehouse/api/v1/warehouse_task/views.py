@@ -18,14 +18,10 @@ from .serializers import (
     WarehouseTaskInitialCompleteSerializer,
     WarehouseTaskCancelSerializer,
     WarehouseTaskReopenSerializer,
-    WarehouseTaskActivateSerializer,
-    WarehouseTaskDeactivateSerializer,
 )
 
 
-class WarehouseTaskListView(
-    generics.ListAPIView
-):
+class WarehouseTaskListView(generics.ListAPIView):
 
     queryset = (
         WarehouseTask.objects
@@ -47,9 +43,7 @@ class WarehouseTaskListView(
     )
 
 
-class WarehouseTaskDetailView(
-    generics.RetrieveAPIView
-):
+class WarehouseTaskDetailView(generics.RetrieveAPIView):
 
     queryset = (
         WarehouseTask.objects
@@ -71,9 +65,7 @@ class WarehouseTaskDetailView(
     )
 
 
-class WarehouseTaskCompleteView(
-    generics.GenericAPIView
-):
+class WarehouseTaskCompleteView(generics.GenericAPIView):
 
     queryset = (
         WarehouseTask.objects
@@ -99,11 +91,7 @@ class WarehouseTaskCompleteView(
         WarehousePermission,
     )
 
-    def post(
-        self,
-        request,
-        pk,
-    ):
+    def post(self, request, pk):
 
         task = self.get_object()
 
@@ -192,9 +180,7 @@ class WarehouseTaskCompleteView(
         )
 
 
-class WarehouseTaskInitialCompleteView(
-    generics.GenericAPIView
-):
+class WarehouseTaskInitialCompleteView(generics.GenericAPIView):
 
     queryset = (
         WarehouseTask.objects
@@ -220,11 +206,7 @@ class WarehouseTaskInitialCompleteView(
         WarehousePermission,
     )
 
-    def post(
-        self,
-        request,
-        pk,
-    ):
+    def post(self, request, pk):
 
         task = self.get_object()
 
@@ -343,9 +325,7 @@ class WarehouseTaskInitialCompleteView(
         )
 
 
-class WarehouseTaskCancelView(
-    generics.GenericAPIView
-):
+class WarehouseTaskCancelView(generics.GenericAPIView):
 
     queryset = (
         WarehouseTask.objects
@@ -366,11 +346,7 @@ class WarehouseTaskCancelView(
         WarehousePermission,
     )
 
-    def post(
-        self,
-        request,
-        pk,
-    ):
+    def post(self, request, pk):
 
         task = self.get_object()
 
@@ -400,15 +376,6 @@ class WarehouseTaskCancelView(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        except ValueError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc)
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         return Response(
             {
                 "detail": "تسک انبار با موفقیت لغو شد.",
@@ -422,9 +389,7 @@ class WarehouseTaskCancelView(
         )
 
 
-class WarehouseTaskReopenView(
-    generics.GenericAPIView
-):
+class WarehouseTaskReopenView(generics.GenericAPIView):
 
     queryset = (
         WarehouseTask.objects
@@ -445,11 +410,7 @@ class WarehouseTaskReopenView(
         WarehousePermission,
     )
 
-    def post(
-        self,
-        request,
-        pk,
-    ):
+    def post(self, request, pk):
 
         task = self.get_object()
 
@@ -479,176 +440,9 @@ class WarehouseTaskReopenView(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        except ValueError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc)
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         return Response(
             {
-                "detail": "تسک انبار با موفقیت بازگردانی شد.",
-                "warehouse_task": (
-                    WarehouseTaskSerializer(
-                        task
-                    ).data
-                ),
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class WarehouseTaskActivateView(
-    generics.GenericAPIView
-):
-
-    queryset = WarehouseTask.objects.all()
-
-    serializer_class = WarehouseTaskActivateSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-        WarehousePermission,
-    )
-
-    def post(
-        self,
-        request,
-        pk,
-    ):
-
-        task = self.get_object()
-
-        serializer = self.get_serializer(
-            data=request.data
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        try:
-
-            task = WarehouseTaskService.activate(
-                task=task,
-            )
-
-        except DjangoValidationError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc)
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        except ValueError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc)
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        task = (
-            WarehouseTask.objects
-            .select_related(
-                "warehouse",
-                "product",
-                "assigned_to",
-                "assigned_to__employee",
-                "purchase_task",
-                "quality_control",
-            )
-            .get(pk=task.pk)
-        )
-
-        return Response(
-            {
-                "detail": "تسک انبار با موفقیت فعال شد.",
-                "warehouse_task": (
-                    WarehouseTaskSerializer(
-                        task
-                    ).data
-                ),
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class WarehouseTaskDeactivateView(
-    generics.GenericAPIView
-):
-
-    queryset = WarehouseTask.objects.all()
-
-    serializer_class = WarehouseTaskDeactivateSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-        WarehousePermission,
-    )
-
-    def post(
-        self,
-        request,
-        pk,
-    ):
-
-        task = self.get_object()
-
-        serializer = self.get_serializer(
-            data=request.data
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        try:
-
-            task = WarehouseTaskService.deactivate(
-                task=task,
-            )
-
-        except DjangoValidationError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc)
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        except ValueError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc)
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        task = (
-            WarehouseTask.objects
-            .select_related(
-                "warehouse",
-                "product",
-                "assigned_to",
-                "assigned_to__employee",
-                "purchase_task",
-                "quality_control",
-            )
-            .get(pk=task.pk)
-        )
-
-        return Response(
-            {
-                "detail": "تسک انبار با موفقیت غیرفعال شد.",
+                "detail": "تسک انبار با موفقیت مجدداً فعال شد.",
                 "warehouse_task": (
                     WarehouseTaskSerializer(
                         task

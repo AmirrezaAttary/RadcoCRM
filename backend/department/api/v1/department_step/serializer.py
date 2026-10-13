@@ -13,7 +13,6 @@ class DepartmentStepListSerializer(serializers.ModelSerializer):
             "department",
             "name",
             "order",
-            "active",
             "created_at",
             "updated_at",
         )
@@ -55,7 +54,6 @@ class DepartmentStepDetailSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "order",
-            "active",
             "created_at",
             "updated_at",
         )

@@ -18,12 +18,6 @@ class DepartmentStep(models.Model):
     )
 
     order = models.PositiveIntegerField()
-    
-    active = models.BooleanField(
-        default=True,
-        verbose_name="فعال",
-    )
-
 
     created_at = models.DateTimeField(
         auto_now_add=True,

@@ -4,7 +4,6 @@ from rest_framework import serializers
 
 from tasks.models.tasks import Task
 
-
 from warehouse.models.warehouse_order_task import (
     OrderTask,
     OrderTaskItem,
@@ -65,9 +64,7 @@ class OrderTaskAttachmentNestedSerializer(
         return {
             "id": obj.performed_by_id,
             "employee_id": obj.performed_by.employee_id,
-            "full_name": (
-                obj.performed_by.employee.user.profile.full_name
-            ),
+            "full_name": obj.performed_by.employee.full_name,
         }
 
 
@@ -94,13 +91,18 @@ class OrderTaskItemSerializer(serializers.ModelSerializer):
             "id",
             "product",
             "product_name",
+
             "quantity",
             "completed_quantity",
+
             "product_sale_price",
+
             "status",
             "status_display",
             "error_message",
+
             "stock_transaction_id",
+
             "created_at",
             "updated_at",
         ]
@@ -184,16 +186,10 @@ class OrderTaskSerializer(serializers.ModelSerializer):
             "status",
             "status_display",
 
-            "active",
-
             "deadline",
             "attachments",
 
             "created_at",
-        ]
-
-        read_only_fields = [
-            "active",
         ]
 
     def get_case(self, obj):
@@ -257,9 +253,7 @@ class OrderTaskSerializer(serializers.ModelSerializer):
         return {
             "id": obj.performed_by_id,
             "employee_id": obj.performed_by.employee_id,
-            "full_name": (
-                obj.performed_by.employee.user.profile.full_name
-            ),
+            "full_name": obj.performed_by.employee.full_name,
         }
 
 
@@ -628,15 +622,3 @@ class OrderTaskAttachmentUpdateSerializer(
             )
 
         return value
-
-
-class OrderTaskActivateSerializer(
-    serializers.Serializer
-):
-    pass
-
-
-class OrderTaskDeactivateSerializer(
-    serializers.Serializer
-):
-    pass

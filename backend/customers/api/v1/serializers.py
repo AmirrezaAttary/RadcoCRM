@@ -2,6 +2,8 @@ from rest_framework import serializers
 
 from customers.models import Customer, CustomerScore
 
+from django.contrib.auth import get_user_model
+
 from accounts.models import Employee
 
 
@@ -27,7 +29,6 @@ class CustomerListSerializer(serializers.ModelSerializer):
             "company_name",
             "status",
             "status_display",
-            "active",
             "created_by_username",
             "created_at",
         )
@@ -93,20 +94,11 @@ class CustomerDetailSerializer(serializers.ModelSerializer):
             "description",
             "status",
             "status_display",
-            "active",
             "created_by",
             "created_by_username",
             "created_at",
             "updated_at",
         )
-
-
-class CustomerActivateSerializer(serializers.Serializer):
-    pass
-
-
-class CustomerDeactivateSerializer(serializers.Serializer):
-    pass
 
 
 class CustomerScoreSerializer(serializers.ModelSerializer):
@@ -117,7 +109,6 @@ class CustomerScoreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomerScore
-
         fields = [
             "id",
             "created_by",
@@ -125,7 +116,6 @@ class CustomerScoreSerializer(serializers.ModelSerializer):
             "reason",
             "created_at",
         ]
-
         read_only_fields = [
             "id",
             "created_at",

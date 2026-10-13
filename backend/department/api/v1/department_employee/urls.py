@@ -1,9 +1,7 @@
 from django.urls import path
 
 from .view import (
-    DepartmentEmployeeActivateApi,
     DepartmentEmployeeCreateApi,
-    DepartmentEmployeeDeactivateApi,
     DepartmentEmployeeDeleteApi,
     DepartmentEmployeeDetailApi,
     DepartmentEmployeeListApi,
@@ -40,18 +38,6 @@ urlpatterns = [
         "<int:pk>/delete/",
         DepartmentEmployeeDeleteApi.as_view(),
         name="department-employee-delete",
-    ),
-    
-    path(
-        "<int:department_id>/<int:employee_id>/deactivate/",
-        DepartmentEmployeeDeactivateApi.as_view(),
-        name="department-employee-deactivate",
-    ),
-
-    path(
-        "<int:department_id>/<int:employee_id>/activate/",
-        DepartmentEmployeeActivateApi.as_view(),
-        name="department-employee-activate",
     ),
 
 ]

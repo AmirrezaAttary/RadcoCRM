@@ -28,7 +28,7 @@ from tasks.services.tasks import (
     deactivate_case,
 )
 
-from customers.services.customer import ensure_customer_active
+
 
 
 class CaseListApi(generics.ListAPIView):
@@ -58,9 +58,7 @@ class CaseCreateApi(generics.CreateAPIView):
     def perform_create(self, serializer):
         customer = serializer.validated_data["customer"]
 
-        ensure_customer_active(
-            customer=customer,
-        )
+
 
         serializer.save(
             created_by=self.request.user,

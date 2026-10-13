@@ -18,7 +18,7 @@ from warehouse.models.warehouse_order_task import OrderTaskDeadline
 def employee_to_calendar_person(employee) -> CalendarPerson:
     return CalendarPerson(
         id=employee.id,
-        full_name=employee.user.profile.full_name,
+        full_name=employee.full_name,
     )
 
 
@@ -28,7 +28,7 @@ def user_to_calendar_person(user) -> CalendarPerson:
     return CalendarPerson(
         id=user.id,
         full_name=(
-            employee.user.profile.full_name
+            employee.full_name
             if employee is not None
             else user.username
         ),
@@ -333,7 +333,8 @@ class InternalTaskRoutineCalendarProvider:
                             people={
                                 "assigned_to": [
                                     user_to_calendar_person(assigned_user)
-                                    for assigned_user in routine.task.assigned_to.all()
+                                    for assigned_user
+                                    in routine.task.assigned_to.all()
                                 ],
                                 "created_by": user_to_calendar_person(
                                     routine.task.created_by

@@ -9,17 +9,15 @@ class DepartmentEmployee(models.Model):
         related_name="department_memberships",
     )
 
+    is_manager = models.BooleanField(
+        default=False,
+    )
+
     department = models.ForeignKey(
         "department.Department",
         on_delete=models.CASCADE,
         related_name="employee_memberships",
     )
-    
-    active = models.BooleanField(
-        default=True,
-        verbose_name="فعال",
-    )
-
 
     created_at = models.DateTimeField(
         auto_now_add=True,

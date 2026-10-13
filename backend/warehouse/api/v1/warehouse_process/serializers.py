@@ -119,8 +119,6 @@ class InventoryStockSerializer(
                 transaction
                 .performed_by
                 .employee
-                .user
-                .profile
                 .full_name
             ),
         }
@@ -418,13 +416,7 @@ class StockTransactionSerializer(
         if not obj.performed_by.employee:
             return None
 
-        return (
-            obj.performed_by
-            .employee
-            .user
-            .profile
-            .full_name
-        )
+        return obj.performed_by.employee.full_name
 
 
 class WarehouseStockOutItemSerializer(
@@ -559,15 +551,8 @@ class WarehouseStockOutSerializer(
         if not obj.performed_by.employee:
             return None
 
-        return (
-            obj.performed_by
-            .employee
-            .user
-            .profile
-            .full_name
-        )
+        return obj.performed_by.employee.full_name
     
-
 class InventoryStockLimitSerializer(
     serializers.ModelSerializer
 ):

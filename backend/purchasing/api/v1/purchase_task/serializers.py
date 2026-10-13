@@ -45,7 +45,7 @@ class PurchaseTaskSerializer(serializers.ModelSerializer):
     )
 
     created_by_name = serializers.CharField(
-        source="created_by.employee.user.profile.full_name",
+        source="created_by.full_name",
         read_only=True,
         allow_null=True,
     )
@@ -73,7 +73,6 @@ class PurchaseTaskSerializer(serializers.ModelSerializer):
             "created_by_name",
             "status",
             "status_display",
-            "active",
             "created_at",
             "updated_at",
         ]
@@ -94,7 +93,6 @@ class PurchaseTaskSerializer(serializers.ModelSerializer):
             "created_by_name",
             "status",
             "status_display",
-            "active",
             "created_at",
             "updated_at",
         ]
@@ -132,9 +130,7 @@ class PurchaseTaskCreateSerializer(serializers.ModelSerializer):
 class PurchaseTaskInitialCreateSerializer(serializers.Serializer):
 
     product = serializers.PrimaryKeyRelatedField(
-        queryset=PurchaseTask._meta.get_field(
-            "product"
-        ).remote_field.model.objects.all()
+        queryset=PurchaseTask._meta.get_field("product").remote_field.model.objects.all()
     )
 
     quantity = serializers.FloatField(
@@ -229,7 +225,7 @@ class PurchaseTaskHistorySerializer(serializers.ModelSerializer):
     )
 
     created_by_name = serializers.CharField(
-        source="created_by.employee.user.profile.full_name",
+        source="created_by.full_name",
         read_only=True,
         allow_null=True,
     )
@@ -262,7 +258,6 @@ class PurchaseTaskHistorySerializer(serializers.ModelSerializer):
             "created_by_name",
             "status",
             "status_display",
-            "active",
             "created_at",
             "updated_at",
             "attachments",
@@ -283,11 +278,3 @@ class PurchaseTaskStatusSerializer(serializers.Serializer):
             ),
         ]
     )
-
-
-class PurchaseTaskActivateSerializer(serializers.Serializer):
-    pass
-
-
-class PurchaseTaskDeactivateSerializer(serializers.Serializer):
-    pass

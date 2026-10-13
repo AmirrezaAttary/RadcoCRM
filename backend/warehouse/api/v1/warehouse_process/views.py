@@ -9,7 +9,6 @@ from drf_spectacular.utils import extend_schema
 
 from rest_framework.permissions import (
     IsAuthenticated,
-    BasePermission,
 )
 
 from warehouse.models.warehouse_process import (
@@ -44,27 +43,7 @@ from warehouse.api.v1.warehouse_process.serializers import (
 )
 
 from access.permissions import WarehousePermission
-from access.authorization.drf import HasPermission
 
-
-class WarehouseOrHasPermission(BasePermission):
-
-    def has_permission(self, request, view):
-
-        warehouse_permission = WarehousePermission()
-
-        if warehouse_permission.has_permission(
-            request,
-            view,
-        ):
-            return True
-
-        has_permission = HasPermission()
-
-        return has_permission.has_permission(
-            request,
-            view,
-        )
 
 
 def inventory_stock_queryset():
@@ -105,11 +84,8 @@ class InventoryStockListView(
 
     serializer_class = InventoryStockSerializer
 
-    required_permission = "inventory_stocks.list"
-
     permission_classes = [
         IsAuthenticated,
-        WarehouseOrHasPermission,
     ]
 
     def get_queryset(self):
@@ -149,11 +125,8 @@ class InventoryStockRetrieveView(
 
     serializer_class = InventoryStockSerializer
 
-    required_permission = "inventory_stocks.retrieve"
-
     permission_classes = [
         IsAuthenticated,
-        WarehouseOrHasPermission,
     ]
 
     def get_queryset(self):

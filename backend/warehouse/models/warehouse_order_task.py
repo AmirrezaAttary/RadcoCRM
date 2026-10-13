@@ -64,11 +64,6 @@ class OrderTask(models.Model):
         blank=True,
         verbose_name="توضیحات تسک",
     )
-    
-    active = models.BooleanField(
-        default=True,
-        verbose_name="فعال",
-    )
 
     case = models.ForeignKey(
         "tasks.Case",

@@ -6,8 +6,6 @@ from .view import (
     DepartmentStepDetailApi,
     DepartmentStepUpdateApi,
     DepartmentStepDeleteApi,
-    DepartmentStepActivateApi,
-    DepartmentStepDeactivateApi,
 )
 
 
@@ -36,15 +34,5 @@ urlpatterns = [
         "<int:pk>/delete/",
         DepartmentStepDeleteApi.as_view(),
         name="delete",
-    ),
-    path(
-        "<int:pk>/activate/",
-        DepartmentStepActivateApi.as_view(),
-        name="activate",
-    ),
-    path(
-        "<int:pk>/deactivate/",
-        DepartmentStepDeactivateApi.as_view(),
-        name="deactivate",
     ),
 ]

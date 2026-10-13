@@ -3,7 +3,6 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
 
 from access.permissions import WarehousePermission
 
@@ -17,8 +16,6 @@ from warehouse.api.v1.warehouse_order_task.serializers import (
     OrderTaskSerializer,
     OrderTaskCreateSerializer,
     OrderTaskUpdateSerializer,
-    OrderTaskActivateSerializer,
-    OrderTaskDeactivateSerializer,
     OrderTaskDeadlineSerializer,
     OrderTaskAttachmentListSerializer,
     OrderTaskAttachmentCreateSerializer,
@@ -38,21 +35,27 @@ def order_task_queryset():
         .select_related(
             "task",
             "warehouse",
+
             "product",
+
             "case",
             "case__customer",
             "department",
             "current_step",
             "created_by",
+
             "performed_by",
             "performed_by__employee",
+
             "deadline",
         )
         .prefetch_related(
             "assigned_employee",
+
             "attachments",
             "attachments__performed_by",
             "attachments__performed_by__employee",
+
             "items",
             "items__product",
             "items__stock_transaction",
@@ -96,9 +99,13 @@ class OrderTaskCreateView(
         order_task = OrderTaskService.create(
             task=serializer.validated_data["task"],
 
-            warehouse=serializer.validated_data["warehouse"],
+            warehouse=serializer.validated_data[
+                "warehouse"
+            ],
 
-            items=serializer.validated_data["items"],
+            items=serializer.validated_data[
+                "items"
+            ],
 
             note=serializer.validated_data.get(
                 "note",
@@ -124,10 +131,7 @@ class OrderTaskCreateView(
         )
 
         response_serializer = OrderTaskSerializer(
-            order_task,
-            context={
-                "request": request,
-            },
+            order_task
         )
 
         return Response(
@@ -146,20 +150,6 @@ class OrderTaskListView(
         order_task_queryset()
         .order_by("-created_at")
     )
-
-    permission_classes = (
-        IsAuthenticated,
-        WarehousePermission,
-    )
-
-
-class OrderTaskDetailView(
-    generics.RetrieveAPIView
-):
-
-    queryset = order_task_queryset()
-
-    serializer_class = OrderTaskSerializer
 
     permission_classes = (
         IsAuthenticated,
@@ -209,21 +199,10 @@ class OrderTaskUpdateView(
             raise_exception=True
         )
 
-        try:
-
-            order_task = OrderTaskService.update(
-                order_task=order_task,
-                **serializer.validated_data,
-            )
-
-        except ValueError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc),
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        order_task = OrderTaskService.update(
+            order_task=order_task,
+            **serializer.validated_data,
+        )
 
         order_task = (
             order_task_queryset()
@@ -231,10 +210,7 @@ class OrderTaskUpdateView(
         )
 
         response_serializer = OrderTaskSerializer(
-            order_task,
-            context={
-                "request": request,
-            },
+            order_task
         )
 
         return Response(
@@ -243,138 +219,18 @@ class OrderTaskUpdateView(
         )
 
 
-class OrderTaskActivateView(
-    generics.GenericAPIView
+class OrderTaskDetailView(
+    generics.RetrieveAPIView
 ):
 
-    serializer_class = OrderTaskActivateSerializer
+    queryset = order_task_queryset()
+
+    serializer_class = OrderTaskSerializer
 
     permission_classes = (
         IsAuthenticated,
         WarehousePermission,
     )
-
-    def get_queryset(self):
-
-        return OrderTask.objects.all()
-
-    def post(
-        self,
-        request,
-        pk,
-    ):
-
-        order_task = get_object_or_404(
-            self.get_queryset(),
-            pk=pk,
-        )
-
-        serializer = self.get_serializer(
-            data=request.data,
-        )
-
-        serializer.is_valid(
-            raise_exception=True,
-        )
-
-        try:
-
-            order_task = OrderTaskService.activate(
-                order_task=order_task,
-            )
-
-        except ValueError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc),
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        order_task = (
-            order_task_queryset()
-            .get(pk=order_task.pk)
-        )
-
-        response_serializer = OrderTaskSerializer(
-            order_task,
-            context={
-                "request": request,
-            },
-        )
-
-        return Response(
-            response_serializer.data,
-            status=status.HTTP_200_OK,
-        )
-
-
-class OrderTaskDeactivateView(
-    generics.GenericAPIView
-):
-
-    serializer_class = OrderTaskDeactivateSerializer
-
-    permission_classes = (
-        IsAuthenticated,
-        WarehousePermission,
-    )
-
-    def get_queryset(self):
-
-        return OrderTask.objects.all()
-
-    def post(
-        self,
-        request,
-        pk,
-    ):
-
-        order_task = get_object_or_404(
-            self.get_queryset(),
-            pk=pk,
-        )
-
-        serializer = self.get_serializer(
-            data=request.data,
-        )
-
-        serializer.is_valid(
-            raise_exception=True,
-        )
-
-        try:
-
-            order_task = OrderTaskService.deactivate(
-                order_task=order_task,
-            )
-
-        except ValueError as exc:
-
-            return Response(
-                {
-                    "detail": str(exc),
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        order_task = (
-            order_task_queryset()
-            .get(pk=order_task.pk)
-        )
-
-        response_serializer = OrderTaskSerializer(
-            order_task,
-            context={
-                "request": request,
-            },
-        )
-
-        return Response(
-            response_serializer.data,
-            status=status.HTTP_200_OK,
-        )
 
 
 class OrderTaskDeadlineListView(
@@ -427,6 +283,7 @@ class OrderTaskAttachmentListView(
         .select_related(
             "order_task",
             "order_task__warehouse",
+
             "performed_by",
             "performed_by__employee",
         )
@@ -447,7 +304,9 @@ class OrderTaskAttachmentCreateView(
 
     queryset = OrderTaskAttachment.objects.all()
 
-    serializer_class = OrderTaskAttachmentCreateSerializer
+    serializer_class = (
+        OrderTaskAttachmentCreateSerializer
+    )
 
     parser_classes = [
         MultiPartParser,
@@ -469,12 +328,15 @@ class OrderTaskAttachmentDetailView(
         .select_related(
             "order_task",
             "order_task__warehouse",
+
             "performed_by",
             "performed_by__employee",
         )
     )
 
-    serializer_class = OrderTaskAttachmentDetailSerializer
+    serializer_class = (
+        OrderTaskAttachmentDetailSerializer
+    )
 
     permission_classes = (
         IsAuthenticated,
@@ -491,12 +353,15 @@ class OrderTaskAttachmentUpdateView(
         .select_related(
             "order_task",
             "order_task__warehouse",
+
             "performed_by",
             "performed_by__employee",
         )
     )
 
-    serializer_class = OrderTaskAttachmentUpdateSerializer
+    serializer_class = (
+        OrderTaskAttachmentUpdateSerializer
+    )
 
     parser_classes = [
         MultiPartParser,

@@ -17,11 +17,4 @@ urlpatterns = [
             "accounts.api.v1.auth.urls",
         ),
     ),
-
-    path(
-        "profile/",
-        include(
-            "accounts.api.v1.profile.urls",
-        ),
-    ),
 ]
