@@ -18,41 +18,24 @@ from .serializers import (
     ScoreSerializer,
     ScoreAdjustmentSerializer
 )
-
+from score.services.score import get_employee_score, get_score_totals
 
 class EmployeeScoreView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = EmployeeScoreSerializer
 
     def get(self, request, employee_id):
-        employee = get_object_or_404(
-            Employee,
-            id=employee_id,
-        )
+        employee = get_object_or_404(Employee, id=employee_id)
 
-        total_deducted = (
-            Score.objects
-            .filter(employee=employee)
-            .aggregate(
-                total=Sum("amount")
-            )["total"]
-            or 0
-        )
-
-        score = max(
-            0,
-            100 - total_deducted,
-        )
+        total_deducted, total_added = get_score_totals(employee)
 
         data = {
             "employee": employee.id,
-            "score": score,
+            "score": get_employee_score(employee),
             "total_deducted": total_deducted,
+            "total_added": total_added,
         }
-
-        serializer = self.get_serializer(data)
-
-        return Response(serializer.data)
+        return Response(self.get_serializer(data).data)
 
 
 class EmployeeScoreHistoryView(generics.ListAPIView):

@@ -4,31 +4,20 @@ from score.models import Score
 
 
 class ScoreSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Score
-
         fields = [
-            "id",
-            "employee",
-            "task",
-            "department_step",
-            "order_task",
-            "amount",
-            "reason",
-            "overdue_period",
-            "created_at",
+            "id", "employee", "task", "department_step", "order_task",
+            "action", "amount", "reason", "overdue_period", "created_at",
         ]
-
         read_only_fields = fields
 
 
 class EmployeeScoreSerializer(serializers.Serializer):
-
     employee = serializers.IntegerField()
     score = serializers.IntegerField()
     total_deducted = serializers.IntegerField()
-
+    total_added = serializers.IntegerField()
 
 
 class ScoreAdjustmentSerializer(serializers.ModelSerializer):
