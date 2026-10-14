@@ -14,13 +14,13 @@ from tasks.models.internal_task_attachment import (
 )
 
 
+
 class UserBriefSerializer(serializers.ModelSerializer):
 
     full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-
         fields = [
             "id",
             "username",
@@ -28,18 +28,16 @@ class UserBriefSerializer(serializers.ModelSerializer):
         ]
 
     def get_full_name(self, obj):
-
-        profile = getattr(
+        employee = getattr(
             obj,
-            "profile",
+            "employee_profile",
             None,
         )
 
-        if profile:
-            return profile.full_name
+        if employee:
+            return employee.full_name
 
         return ""
-
 
 class InternalTaskDeadlineSerializer(
     serializers.ModelSerializer

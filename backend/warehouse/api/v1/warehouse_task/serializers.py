@@ -29,7 +29,7 @@ class WarehouseTaskSerializer(serializers.ModelSerializer):
     )
 
     assigned_to_name = serializers.CharField(
-        source="assigned_to.employee.user.profile.full_name",
+        source="assigned_to.employee.full_name",
         read_only=True,
         allow_null=True,
     )
@@ -120,11 +120,11 @@ class WarehouseTaskSerializer(serializers.ModelSerializer):
 class WarehouseTaskCompleteSerializer(serializers.Serializer):
 
     assigned_to = serializers.IntegerField(
-        min_value=1
+        min_value=1,
     )
 
     received_quantity = serializers.FloatField(
-        min_value=0.0001
+        min_value=0.0001,
     )
 
     note = serializers.CharField(
@@ -142,23 +142,23 @@ class WarehouseTaskCompleteSerializer(serializers.Serializer):
 class WarehouseTaskInitialCompleteSerializer(serializers.Serializer):
 
     warehouse = serializers.IntegerField(
-        min_value=1
+        min_value=1,
     )
 
     quantity = serializers.FloatField(
-        min_value=0.0001
+        min_value=0.0001,
     )
 
     performed_by_id = serializers.IntegerField(
-        min_value=1
+        min_value=1,
     )
 
     minimum_stock = serializers.FloatField(
-        min_value=0
+        min_value=0,
     )
 
     maximum_stock = serializers.FloatField(
-        min_value=0.0001
+        min_value=0.0001,
     )
 
     note = serializers.CharField(
@@ -173,7 +173,6 @@ class WarehouseTaskInitialCompleteSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-
         if attrs["minimum_stock"] > attrs["maximum_stock"]:
             raise serializers.ValidationError(
                 "حداقل موجودی نمی‌تواند بیشتر از حداکثر موجودی باشد."

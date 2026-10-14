@@ -1,3 +1,4 @@
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -36,10 +37,10 @@ def _create_internal_task_archive(
         InternalTask.objects
         .select_related(
             "created_by",
-            "created_by__profile",
+            "created_by__employee_profile",
         )
         .prefetch_related(
-            "assigned_to__profile",
+            "assigned_to__employee_profile",
             "attachments__uploaded_by",
         )
         .get(
@@ -50,9 +51,9 @@ def _create_internal_task_archive(
     assigned_employees_snapshot = []
 
     for user in task.assigned_to.all():
-        profile = getattr(
+        employee = getattr(
             user,
-            "profile",
+            "employee_profile",
             None,
         )
 
@@ -61,18 +62,18 @@ def _create_internal_task_archive(
             "user_id": user.id,
             "username": user.username,
             "full_name": (
-                profile.full_name
-                if profile
+                employee.full_name
+                if employee
                 else ""
             ),
             "created_at": _serialize_datetime(
-                profile.created_at
-                if profile
+                employee.created_at
+                if employee
                 else None
             ),
             "updated_at": _serialize_datetime(
-                profile.updated_at
-                if profile
+                employee.updated_at
+                if employee
                 else None
             ),
         })
@@ -129,20 +130,20 @@ def _create_internal_task_archive(
 
     created_by = task.created_by
 
-    created_profile = (
+    created_employee = (
         getattr(
             created_by,
-            "profile",
+            "employee_profile",
             None,
         )
         if created_by
         else None
     )
 
-    final_profile = (
+    final_employee = (
         getattr(
             final_action_by,
-            "profile",
+            "employee_profile",
             None,
         )
         if final_action_by
@@ -174,8 +175,8 @@ def _create_internal_task_archive(
             else None
         ),
         created_by_full_name=(
-            created_profile.full_name
-            if created_profile
+            created_employee.full_name
+            if created_employee
             else ""
         ),
         final_action_by_id=(
@@ -189,8 +190,8 @@ def _create_internal_task_archive(
             else None
         ),
         final_action_by_full_name=(
-            final_profile.full_name
-            if final_profile
+            final_employee.full_name
+            if final_employee
             else ""
         ),
     )
@@ -280,12 +281,10 @@ def finalize_internal_task(
         )
     )
 
-
     if not task.active:
         raise ValueError(
             "این تسک غیرفعال است و امکان نهایی کردن آن وجود ندارد."
         )
-
 
     if task.status != InternalTask.Status.IN_PROGRESS:
         raise ValueError(
@@ -299,7 +298,6 @@ def finalize_internal_task(
         raise ValueError(
             "وضعیت نهایی نامعتبر است."
         )
-    
 
     routine = getattr(
         task,
@@ -312,7 +310,6 @@ def finalize_internal_task(
         if routine
         else None
     )
-
 
     task.status = status
 
@@ -330,18 +327,15 @@ def finalize_internal_task(
         ]
     )
 
-    
     attachment_files = attachment_files or []
 
     if attachment_files:
-
         if uploaded_by is None:
             raise ValueError(
                 "آپلودکننده فایل مشخص نشده است."
             )
 
         for attachment_file in attachment_files:
-
             InternalTaskAttachment.objects.create(
                 task=task,
                 file=attachment_file,
@@ -349,18 +343,15 @@ def finalize_internal_task(
                 uploaded_by=uploaded_by,
             )
 
-
     archive = _create_internal_task_archive(
         task=task,
         final_action_by=final_action_by,
         execution_started_at=execution_started_at,
     )
 
-
     _delete_internal_task_deadline(
         task=task,
     )
-
 
     if (
         routine
@@ -391,12 +382,10 @@ def reopen_internal_task(*, task):
         )
     )
 
-
     if not task.active:
         raise ValueError(
             "این تسک غیرفعال است و امکان بازگشایی آن وجود ندارد."
         )
-
 
     if task.status not in (
         InternalTask.Status.COMPLETED,

@@ -20,7 +20,7 @@ class TaskListSerializer(serializers.ModelSerializer):
     )
 
     assigned_employee_name = serializers.CharField(
-        source="assigned_employee.user.profile.full_name",
+        source="assigned_employee.full_name",
         read_only=True,
     )
 
@@ -90,11 +90,14 @@ class TaskDetailSerializer(serializers.ModelSerializer):
     )
 
     assigned_employee_name = serializers.CharField(
-        source="assigned_employee.user.profile.full_name",
+        source="assigned_employee.full_name",
         read_only=True,
     )
 
-    attachments = TaskAttachmentSerializer(many=True, read_only=True)
+    attachments = TaskAttachmentSerializer(
+        many=True,
+        read_only=True,
+    )
 
     class Meta:
         model = Task
@@ -146,10 +149,7 @@ class TaskActionSerializer(serializers.Serializer):
     )
 
 
-class TaskReopenSerializer(
-    serializers.Serializer
-):
-
+class TaskReopenSerializer(serializers.Serializer):
     pass
 
 
@@ -161,11 +161,14 @@ class TaskStepLogSerializer(serializers.ModelSerializer):
     )
 
     employee_name = serializers.CharField(
-        source="employee.user.profile.full_name",
+        source="employee.full_name",
         read_only=True,
     )
 
-    attachments = TaskAttachmentSerializer(many=True, read_only=True)
+    attachments = TaskAttachmentSerializer(
+        many=True,
+        read_only=True,
+    )
 
     class Meta:
         model = TaskStepLog
@@ -265,10 +268,8 @@ class CompleteTaskSerializer(serializers.Serializer):
 
 
 class TaskDeactivateSerializer(serializers.Serializer):
-
     pass
 
 
 class TaskActivateSerializer(serializers.Serializer):
-
     pass
