@@ -20,11 +20,11 @@ class EmployeeScoreSerializer(serializers.Serializer):
     total_added = serializers.IntegerField()
 
 
+
 class ScoreAdjustmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Score
         fields = [
-            "employee",
             "action",
             "amount",
             "reason",

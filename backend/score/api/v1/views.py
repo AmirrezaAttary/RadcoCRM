@@ -78,6 +78,7 @@ class EmployeeScoreHistoryView(generics.ListAPIView):
         )
 
 
+
 class AdminScoreAdjustmentView(generics.GenericAPIView):
     permission_classes = [IsAdminOrDepartmentManager]
     serializer_class = ScoreAdjustmentSerializer
@@ -89,15 +90,10 @@ class AdminScoreAdjustmentView(generics.GenericAPIView):
             id=employee_id,
         )
 
-        serializer = self.get_serializer(
-            data={
-                **request.data,
-                "employee": employee.id,
-            }
-        )
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        score_log = serializer.save()
+        score_log = serializer.save(employee=employee)
 
         return Response(
             {
@@ -110,3 +106,6 @@ class AdminScoreAdjustmentView(generics.GenericAPIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+    
