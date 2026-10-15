@@ -1,5 +1,7 @@
 from django.urls import path
 
+from .bulk_import import CustomerExcelImportApi
+
 from .views import (
     CustomerListApi,
     CustomerCreateApi,
@@ -14,6 +16,11 @@ from .views import (
 app_name = "customers"
 
 urlpatterns = [
+    path(
+        "customers/bulk-import/",
+        CustomerExcelImportApi.as_view(),
+        name="customer-bulk-import",
+    ),
     path("customers/", CustomerListApi.as_view(), name="customer-list"),
     path("customers/create/", CustomerCreateApi.as_view(), name="customer-create"),
     path("customers/<int:pk>/", CustomerDetailApi.as_view(), name="customer-detail"),
