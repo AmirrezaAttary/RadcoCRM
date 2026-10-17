@@ -7,6 +7,7 @@ from department.models import (
     DepartmentEmployee,
     DepartmentStep,
 )
+from accounts.models import Employee
 from customers.models import Customer, CustomerScore
 from notifications.sms import send_sms
 
@@ -85,6 +86,38 @@ def _ensure_task_assigned_employee_active(*, task, employee):
         employee=employee,
         department=task.department,
     )
+
+def _get_step_employees_for_revert(*, task, step):
+    """
+    کارمند(های) مسئول مرحله‌ی `step` را برمی‌گرداند؛ یعنی کسانی که
+    آخرین بار این مرحله را به مرحله‌ی بعد فرستاده‌اند.
+    فقط کسانی که هنوز فعال و عضو دپارتمان تسک هستند در نظر گرفته می‌شوند.
+    """
+    last_log = (
+        TaskStepLog.objects
+        .filter(
+            task=task,
+            step=step,
+            action=TaskStepLog.Action.ADVANCED,
+        )
+        .order_by("-created_at", "-id")
+        .first()
+    )
+
+    if last_log is None:
+        return []
+
+    return list(
+        Employee.objects
+        .filter(
+            pk__in=last_log.employee.values_list("pk", flat=True),
+            is_active=True,
+            department_memberships__department=task.department,
+        )
+        .select_related("user")
+        .distinct()
+    )
+
 
 def _validate_assigned_employees(department, assigned_employee):
     assigned_employee = list(assigned_employee)
@@ -898,6 +931,12 @@ def revert_step(
             "مرحله قبلی برای این تسک پیدا نشد."
         )
 
+    # مسئول مرحله‌ی قبل را قبل از ثبت لاگ برگشت پیدا می‌کنیم.
+    previous_assignees = _get_step_employees_for_revert(
+        task=task,
+        step=previous_step,
+    )
+
     step_log = TaskStepLog.objects.create(
         task=task,
         step=current_step,
@@ -921,12 +960,31 @@ def revert_step(
 
     task.current_step = previous_step
 
+    # تسک به همان فردی برمی‌گردد که مرحله‌ی قبل را انجام داده بود.
+    # اگر چنین فردی پیدا نشد (مثلاً دیگر در دپارتمان نیست)،
+    # مسئول‌های فعلی تغییری نمی‌کنند تا تسک بدون مسئول نماند.
+    if previous_assignees:
+        task.assigned_employee.set(previous_assignees)
+
     task.save(
         update_fields=[
             "current_step",
             "updated_at",
         ]
     )
+
+    if previous_assignees:
+        message = (
+            f"تسک «{task.title}» به مرحله‌ی «{previous_step.name}» "
+            f"بازگردانده شد و به شما اختصاص داده شد."
+        )
+
+        for assignee in previous_assignees:
+            if assignee.user.phone_number:
+                send_sms(
+                    number=assignee.user.phone_number,
+                    message=message,
+                )
 
     return task
 

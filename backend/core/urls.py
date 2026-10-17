@@ -47,6 +47,7 @@ urlpatterns = [
     path('quality_control/', include('quality_control.urls')),
     path('search/', include('search.urls')),
     path('document/', include('document.urls')),
+    path('minutes/', include('minutes.urls')),
     path('api-auth/', include('rest_framework.urls')),
 ]
 
