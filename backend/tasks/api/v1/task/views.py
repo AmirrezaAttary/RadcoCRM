@@ -100,6 +100,7 @@ class TaskCreateApi(generics.CreateAPIView):
                 assigned_employee=serializer.validated_data["assigned_employee"],
                 created_by=self.request.user,
                 files=serializer.validated_data.get("files", []),
+                current_step=serializer.validated_data.get("current_step"),
             )
 
         except TaskServiceError as error:
@@ -549,14 +550,31 @@ class TaskReopenApi(
 
     serializer_class = TaskReopenSerializer
 
+    # دسترسی به تسک‌های بسته‌شده با TaskAccess (مسئول/سازنده) محدود است،
+    # اما مدیر دپارتمان باید بتواند بدون مسئول بودن، تسک را برگرداند.
+    # بررسی «مدیر بودن» داخل سرویس reopen_task انجام می‌شود.
     permission_classes = (
         IsAuthenticated,
-        TaskPermission,
     )
 
     def get_queryset(self):
-        return TaskAccess.get_queryset(
-            self.request.user,
+        try:
+            employee = self.request.user.employee_profile
+        except ObjectDoesNotExist:
+            return Task.objects.none()
+
+        return (
+            Task.objects
+            .filter(
+                department__employee_memberships__employee=employee,
+            )
+            .select_related(
+                "case",
+                "department",
+                "current_step",
+                "created_by",
+            )
+            .distinct()
         )
 
     def post(self, request, *args, **kwargs):
@@ -566,6 +584,13 @@ class TaskReopenApi(
         # -----------------------------------------------------
 
         task = self.get_object()
+
+        try:
+            employee = request.user.employee_profile
+        except ObjectDoesNotExist:
+            raise PermissionDenied(
+                "فقط مدیر دپارتمان می‌تواند این عملیات را انجام دهد."
+            )
 
         # -----------------------------------------------------
         # Validate Request
@@ -587,6 +612,9 @@ class TaskReopenApi(
 
             task = services.reopen_task(
                 task=task,
+                employee=employee,
+                current_step=serializer.validated_data["current_step"],
+                assigned_employee=serializer.validated_data["assigned_employee"],
             )
 
         except TaskServiceError as error:

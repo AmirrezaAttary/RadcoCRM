@@ -16,6 +16,7 @@ from ..exceptions import (
     EmployeeNotInDepartmentError,
     FirstStepRevertError,
     InvalidTaskActionError,
+    NotDepartmentManagerError,
 )
 from ..models import (
     Task,
@@ -86,6 +87,29 @@ def _ensure_task_assigned_employee_active(*, task, employee):
         employee=employee,
         department=task.department,
     )
+
+def _resolve_department_step(*, department, step):
+    """
+    مرحله‌ی انتخاب‌شده را بررسی می‌کند که متعلق به دپارتمان باشد.
+    """
+    if step.department_id != department.id:
+        raise InvalidTaskActionError(
+            "مرحله‌ی انتخاب‌شده متعلق به دپارتمان این تسک نیست."
+        )
+
+    return step
+
+
+def _ensure_department_manager(*, employee, department):
+    is_manager = DepartmentEmployee.objects.filter(
+        employee=employee,
+        department=department,
+        is_manager=True,
+    ).exists()
+
+    if not is_manager:
+        raise NotDepartmentManagerError()
+
 
 def _get_step_employees_for_revert(*, task, step):
     """
@@ -577,6 +601,7 @@ def create_task(
     assigned_employee,
     created_by,
     files=None,
+    current_step=None,
 ):
     assigned_employee = _validate_assigned_employees(
         department=department,
@@ -599,11 +624,18 @@ def create_task(
                 "این پرونده در حال حاضر یک تسک فعال دارد."
             )
 
-    first_step = _get_first_step(department)
+    # اگر مرحله‌ای انتخاب نشده باشد، تسک در اولین مرحله قرار می‌گیرد.
+    if current_step is None:
+        start_step = _get_first_step(department)
 
-    if first_step is None:
-        raise InvalidTaskActionError(
-            "این دپارتمان هیچ مرحله‌ای ندارد."
+        if start_step is None:
+            raise InvalidTaskActionError(
+                "این دپارتمان هیچ مرحله‌ای ندارد."
+            )
+    else:
+        start_step = _resolve_department_step(
+            department=department,
+            step=current_step,
         )
 
     task = Task.objects.create(
@@ -611,7 +643,7 @@ def create_task(
         description=description,
         case=case,
         department=department,
-        current_step=first_step,
+        current_step=start_step,
         created_by=created_by,
     )
 
@@ -1156,7 +1188,13 @@ def get_task_step_deadline(
     )
 
 @transaction.atomic
-def reopen_task(*, task):
+def reopen_task(
+    *,
+    task,
+    employee,
+    current_step,
+    assigned_employee,
+):
     task = (
         Task.objects
         .select_for_update()
@@ -1169,6 +1207,12 @@ def reopen_task(*, task):
 
     _ensure_task_workflow_active(
         task=task
+    )
+
+    # فقط مدیر دپارتمان می‌تواند تسک را از آرشیو برگرداند.
+    _ensure_department_manager(
+        employee=employee,
+        department=task.department,
     )
 
     if task.status not in (
@@ -1196,16 +1240,42 @@ def reopen_task(*, task):
                 "این پرونده در حال حاضر یک تسک فعال دارد."
             )
 
+    target_step = _resolve_department_step(
+        department=task.department,
+        step=current_step,
+    )
+
+    new_assignees = _validate_assigned_employees(
+        department=task.department,
+        assigned_employee=assigned_employee,
+    )
+
     task.status = Task.Status.IN_PROGRESS
     task.completed_at = None
+    task.current_step = target_step
+
+    task.assigned_employee.set(new_assignees)
 
     task.save(
         update_fields=[
             "status",
             "completed_at",
+            "current_step",
             "updated_at",
         ]
     )
+
+    message = (
+        f"تسک «{task.title}» به مرحله‌ی «{target_step.name}» "
+        f"بازگردانده شد و به شما اختصاص داده شد."
+    )
+
+    for assignee in new_assignees:
+        if assignee.user.phone_number:
+            send_sms(
+                number=assignee.user.phone_number,
+                message=message,
+            )
 
     return task
 

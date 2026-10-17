@@ -1,4 +1,4 @@
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, PermissionDenied
 
 
 class TaskServiceError(APIException):
@@ -30,3 +30,9 @@ class FirstStepRevertError(TaskServiceError):
 
     default_detail = "تسک در اولین مرحله است و قابل بازگشت نیست."
     default_code = "first_step_revert"
+
+
+class NotDepartmentManagerError(PermissionDenied):
+
+    default_detail = "فقط مدیر دپارتمان می‌تواند این عملیات را انجام دهد."
+    default_code = "not_department_manager"

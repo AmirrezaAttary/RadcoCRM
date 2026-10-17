@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from tasks.models import Task, TaskStepLog, TaskStepDeadline
 from accounts.models import Employee
+from department.models import DepartmentStep
 from tasks.models.cases import Case
 
 from ..task_attachment.serializers import TaskAttachmentSerializer
@@ -63,6 +64,13 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         required=True,
     )
 
+    # مرحله‌ای که تسک در آن شروع می‌شود؛ پیش‌فرض اولین مرحله‌ی دپارتمان.
+    current_step = serializers.PrimaryKeyRelatedField(
+        queryset=DepartmentStep.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Task
 
@@ -72,6 +80,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
             "status",
             "case",
             "department",
+            "current_step",
             "assigned_employee",
             "files",
         )
@@ -161,7 +170,17 @@ class TaskAdvanceSerializer(TaskActionSerializer):
 
 
 class TaskReopenSerializer(serializers.Serializer):
-    pass
+
+    # مرحله‌ای که تسک بعد از بازگشایی در آن قرار می‌گیرد.
+    current_step = serializers.PrimaryKeyRelatedField(
+        queryset=DepartmentStep.objects.all(),
+    )
+
+    # مسئول(های) تسک بعد از بازگشایی.
+    assigned_employee = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(),
+        many=True,
+    )
 
 
 class TaskStepLogSerializer(serializers.ModelSerializer):
