@@ -1,4 +1,5 @@
 from django.urls import path
+from warehouse.api.v1.product.bulk_import import ProductExcelImportApi
 from warehouse.api.v1.product.views import (
     ProductCategoryListView, ProductCategoryCreateView,
     ProductCategoryRetrieveView, ProductCategoryUpdateView, ProductCategoryDeleteView,
@@ -15,6 +16,12 @@ urlpatterns = [
     path("categories/<int:pk>/delete/", ProductCategoryDeleteView.as_view(), name="category-delete"),
 
     # Product
+    path("bulk-import/", ProductExcelImportApi.as_view(), name="product-bulk-import"),
+    path(
+        "bulk-import/<int:warehouse_id>/",
+        ProductExcelImportApi.as_view(),
+        name="product-bulk-import-warehouse",
+    ),
     path("", ProductListView.as_view(), name="product-list"),
     path("create/", ProductCreateView.as_view(), name="product-create"),
     path("<int:pk>/", ProductRetrieveView.as_view(), name="product-detail"),

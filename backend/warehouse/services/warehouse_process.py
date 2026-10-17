@@ -61,6 +61,71 @@ class InventoryService:
 
     @staticmethod
     @transaction.atomic
+    def bulk_add_initial_stock(
+        warehouse,
+        items: list,
+        performed_by,
+    ) -> list:
+        """
+        ثبت دسته‌ای موجودی اول دوره (برای ایمپورت اکسل).
+
+        items: لیستی از dict با کلیدهای
+               product, quantity, minimum_stock, maximum_stock
+        performed_by: خود شیء WarehouseStaff (نه id)
+        """
+
+        product_ids = [item["product"].pk for item in items]
+
+        if len(set(product_ids)) != len(product_ids):
+            raise ValueError("یک کالا بیش از یک‌بار در لیست ثبت موجودی آمده است.")
+
+        already = set(
+            InventoryStock.objects
+            .filter(warehouse=warehouse)
+            .values_list("product_id", flat=True)
+        ) & set(product_ids)
+
+        if already:
+            names = ", ".join(
+                item["product"].name
+                for item in items
+                if item["product"].pk in already
+            )
+            raise ValueError(
+                f"موجودی اول دوره این کالاها در انبار "
+                f"{warehouse.name} قبلاً ثبت شده است: {names}"
+            )
+
+        stocks = InventoryStock.objects.bulk_create([
+            InventoryStock(
+                warehouse=warehouse,
+                product=item["product"],
+                initial_quantity=item["quantity"],
+                current_quantity=item["quantity"],
+                minimum_stock=item["minimum_stock"],
+                maximum_stock=item["maximum_stock"],
+            )
+            for item in items
+        ])
+
+        StockTransaction.objects.bulk_create([
+            StockTransaction(
+                warehouse=warehouse,
+                product=item["product"],
+                transaction_type=StockTransaction.TransactionType.INITIAL,
+                quantity_changed=item["quantity"],
+                quantity_before=0,
+                quantity_after=item["quantity"],
+                note="موجودی اول دوره",
+                performed_by=performed_by,
+            )
+            for item in items
+        ])
+
+        return stocks
+
+    @staticmethod
+    @transaction.atomic
     def stock_in(
         warehouse,
         product,
