@@ -615,6 +615,7 @@ def advance_step(
     files=None,
     score=None,
     score_reason="",
+    next_assigned_employee=None,
 ):
     task = (
         Task.objects
@@ -646,6 +647,21 @@ def advance_step(
         task.department,
         current_step.order + 1,
     )
+
+    # اگر مرحله‌ی بعدی وجود دارد، مسئول مرحله‌ی بعد باید انتخاب شود
+    # (می‌تواند خود کاربر باشد). این اعتبارسنجی قبل از ثبت هر تغییری انجام می‌شود.
+    new_assignees = []
+
+    if next_step is not None:
+        if not next_assigned_employee:
+            raise InvalidTaskActionError(
+                "برای انتقال تسک به مرحله‌ی بعد، انتخاب مسئول مرحله‌ی بعد الزامی است."
+            )
+
+        new_assignees = _validate_assigned_employees(
+            department=task.department,
+            assigned_employee=next_assigned_employee,
+        )
 
     step_log = TaskStepLog.objects.create(
         task=task,
@@ -682,6 +698,9 @@ def advance_step(
 
         task.current_step = next_step
 
+        # مسئول‌های مرحله‌ی قبل جایگزین مسئول(های) انتخاب‌شده می‌شوند.
+        task.assigned_employee.set(new_assignees)
+
     task.save(
         update_fields=[
             "status",
@@ -690,6 +709,19 @@ def advance_step(
             "updated_at",
         ]
     )
+
+    if new_assignees:
+        message = (
+            f"تسک «{task.title}» به مرحله‌ی «{next_step.name}» "
+            f"منتقل شد و به شما اختصاص داده شد."
+        )
+
+        for assignee in new_assignees:
+            if assignee.user.phone_number:
+                send_sms(
+                    number=assignee.user.phone_number,
+                    message=message,
+                )
 
     if (
         task.status == Task.Status.COMPLETED

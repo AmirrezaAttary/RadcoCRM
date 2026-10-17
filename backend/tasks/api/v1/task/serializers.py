@@ -149,6 +149,17 @@ class TaskActionSerializer(serializers.Serializer):
     )
 
 
+class TaskAdvanceSerializer(TaskActionSerializer):
+
+    # مسئول(های) مرحله‌ی بعد؛ می‌تواند خود کاربر هم باشد.
+    # اگر مرحله‌ی فعلی آخرین مرحله باشد، نادیده گرفته می‌شود.
+    next_assigned_employee = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(),
+        many=True,
+        required=False,
+    )
+
+
 class TaskReopenSerializer(serializers.Serializer):
     pass
 

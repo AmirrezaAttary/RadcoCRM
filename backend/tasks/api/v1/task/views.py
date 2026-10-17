@@ -29,6 +29,7 @@ from .serializers import (
     TaskCreateSerializer,
     TaskDetailSerializer,
     TaskActionSerializer,
+    TaskAdvanceSerializer,
     TaskStepLogSerializer,
     TaskUpdateSerializer,
     TaskStepDeadlineSerializer,
@@ -142,6 +143,15 @@ class TaskDetailApi(generics.RetrieveAPIView):
                 "score_reason": {
                     "type": "string",
                 },
+                "next_assigned_employee": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": (
+                        "شناسه‌ی کارمند(های) مسئول مرحله‌ی بعد. "
+                        "برای انتقال به مرحله‌ی بعد الزامی است و می‌تواند "
+                        "خود کاربر باشد."
+                    ),
+                },
             },
         },
     },
@@ -151,7 +161,7 @@ class TaskAdvanceApi(generics.GenericAPIView):
 
     queryset = Task.objects.all()
 
-    serializer_class = TaskActionSerializer
+    serializer_class = TaskAdvanceSerializer
 
     permission_classes = (
         IsAuthenticated,
@@ -199,6 +209,10 @@ class TaskAdvanceApi(generics.GenericAPIView):
                 score_reason=serializer.validated_data.get(
                     "score_reason",
                     "",
+                ),
+                next_assigned_employee=serializer.validated_data.get(
+                    "next_assigned_employee",
+                    [],
                 ),
             )
 
