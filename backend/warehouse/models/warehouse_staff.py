@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models.employee import Employee
+from warehouse.models.warehouse import Warehouse
 
 
 class WarehouseStaff(models.Model):
@@ -8,6 +9,12 @@ class WarehouseStaff(models.Model):
         on_delete=models.CASCADE,
         related_name="warehouse_staff",
         verbose_name="کارمند"
+    )
+    warehouses = models.ManyToManyField(
+        Warehouse,
+        blank=True,
+        related_name="staff_members",
+        verbose_name="انبارهای مجاز"
     )
     is_active = models.BooleanField(
         default=True,
@@ -24,3 +31,10 @@ class WarehouseStaff(models.Model):
 
     def __str__(self):
         return self.employee.full_name
+
+    def can_access_warehouse(self, warehouse):
+        """warehouse می‌تواند شیء Warehouse یا id باشد."""
+        warehouse_id = getattr(warehouse, "pk", warehouse)
+        if warehouse_id is None:
+            return False
+        return self.warehouses.filter(pk=warehouse_id).exists()

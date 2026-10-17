@@ -4,6 +4,9 @@ from warehouse.models.warehouse_process import (
     InventoryStock,
     StockTransaction,
 )
+from warehouse.services.staff_access import (
+    ensure_staff_can_access_warehouse,
+)
 
 
 class InventoryService:
@@ -36,6 +39,8 @@ class InventoryService:
 
         if not performed_by:
             raise ValueError("کاربر انبار یافت نشد.")
+
+        ensure_staff_can_access_warehouse(performed_by, warehouse)
 
         stock = InventoryStock.objects.create(
             warehouse=warehouse,
@@ -73,6 +78,8 @@ class InventoryService:
                product, quantity, minimum_stock, maximum_stock
         performed_by: خود شیء WarehouseStaff (نه id)
         """
+
+        ensure_staff_can_access_warehouse(performed_by, warehouse)
 
         product_ids = [item["product"].pk for item in items]
 
@@ -163,6 +170,8 @@ class InventoryService:
         if not performed_by:
             raise ValueError("کاربر انبار یافت نشد.")
 
+        ensure_staff_can_access_warehouse(performed_by, warehouse)
+
         before = stock.current_quantity
 
         stock.current_quantity += quantity
@@ -229,6 +238,8 @@ class InventoryService:
 
         if not performed_by:
             raise ValueError("کاربر انبار یافت نشد.")
+
+        ensure_staff_can_access_warehouse(performed_by, warehouse)
 
         before = stock.current_quantity
 

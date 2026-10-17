@@ -353,6 +353,11 @@ class ProductExcelImportApi(GenericAPIView):
                     {"detail": "انباردار یافت نشد یا فعال نیست."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
+            if not performed_by.can_access_warehouse(warehouse):
+                return Response(
+                    {"detail": "این انباردار به این انبار دسترسی ندارد."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         try:
             workbook = load_workbook(

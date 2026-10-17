@@ -5,6 +5,7 @@ from django.utils import timezone
 from warehouse.models.warehouse_process import InventoryStock
 from warehouse.models.warehouse_task import WarehouseTask
 from warehouse.models.warehouse_task_archive import WarehouseTaskArchive
+from warehouse.services.staff_access import ensure_staff_can_access_warehouse
 from warehouse.services.warehouse_process import InventoryService
 from purchasing.models.purchase_task import PurchaseTask
 
@@ -379,6 +380,12 @@ class WarehouseTaskService:
                 "انبار این تسک مشخص نشده است."
             )
 
+        ensure_staff_can_access_warehouse(
+            warehouse_staff,
+            task.warehouse,
+            exc=ValidationError,
+        )
+
         if not task.product:
             raise ValidationError(
                 "کالای این تسک مشخص نشده است."
@@ -597,6 +604,12 @@ class WarehouseTaskService:
             raise ValidationError(
                 "انباردار انتخاب شده فعال نیست."
             )
+
+        ensure_staff_can_access_warehouse(
+            warehouse_staff,
+            warehouse,
+            exc=ValidationError,
+        )
 
         if received_quantity is None:
             raise ValidationError(

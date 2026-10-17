@@ -463,6 +463,24 @@ class OrderTaskUpdateSerializer(serializers.Serializer):
 
         status = attrs.get("status")
 
+        staff = attrs.get("performed_by")
+
+        if staff is None and status is not None:
+            staff = self.instance.performed_by
+
+        if (
+            staff is not None
+            and self.instance.warehouse_id
+            and not staff.can_access_warehouse(
+                self.instance.warehouse_id
+            )
+        ):
+            raise serializers.ValidationError({
+                "performed_by": (
+                    "این انباردار به انبار این تسک دسترسی ندارد."
+                )
+            })
+
         if status in [
             OrderTask.Status.COMPLETED,
             OrderTask.Status.CANCELLED,
@@ -564,6 +582,25 @@ class OrderTaskAttachmentCreateSerializer(
 
         return value
 
+    def validate(self, attrs):
+
+        order_task = attrs["order_task"]
+        staff = attrs["performed_by"]
+
+        if (
+            order_task.warehouse_id
+            and not staff.can_access_warehouse(
+                order_task.warehouse_id
+            )
+        ):
+            raise serializers.ValidationError({
+                "performed_by": (
+                    "این انباردار به انبار این تسک دسترسی ندارد."
+                )
+            })
+
+        return attrs
+
 
 class OrderTaskAttachmentDetailSerializer(
     serializers.ModelSerializer
@@ -622,3 +659,22 @@ class OrderTaskAttachmentUpdateSerializer(
             )
 
         return value
+
+    def validate(self, attrs):
+
+        staff = attrs.get("performed_by")
+
+        if (
+            staff is not None
+            and self.instance.order_task.warehouse_id
+            and not staff.can_access_warehouse(
+                self.instance.order_task.warehouse_id
+            )
+        ):
+            raise serializers.ValidationError({
+                "performed_by": (
+                    "این انباردار به انبار این تسک دسترسی ندارد."
+                )
+            })
+
+        return attrs

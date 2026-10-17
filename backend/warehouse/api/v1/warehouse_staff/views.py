@@ -10,9 +10,23 @@ from access.permissions import WarehousePermission
 
 
 class WarehouseStaffListView(ListAPIView):
-    queryset = WarehouseStaff.objects.select_related("employee").all()
     serializer_class = WarehouseStaffSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = (
+            WarehouseStaff.objects
+            .select_related("employee")
+            .prefetch_related("warehouses")
+        )
+
+        # فقط انباردارهای یک انبار مشخص: ?warehouse_id=3
+        warehouse_id = self.request.query_params.get("warehouse_id")
+
+        if warehouse_id:
+            queryset = queryset.filter(warehouses__id=warehouse_id)
+
+        return queryset
 
 
 class WarehouseStaffCreateView(CreateAPIView):
@@ -22,7 +36,11 @@ class WarehouseStaffCreateView(CreateAPIView):
 
 
 class WarehouseStaffRetrieveView(RetrieveAPIView):
-    queryset = WarehouseStaff.objects.select_related("employee").all()
+    queryset = (
+        WarehouseStaff.objects
+        .select_related("employee")
+        .prefetch_related("warehouses")
+    )
     serializer_class = WarehouseStaffSerializer
     permission_classes = [IsAuthenticated]
 

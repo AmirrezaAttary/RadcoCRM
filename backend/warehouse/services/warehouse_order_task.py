@@ -13,6 +13,7 @@ from warehouse.models.warehouse_process import StockTransaction
 from warehouse.models.warehouse_staff import WarehouseStaff
 
 from .warehouse_process import InventoryService
+from .staff_access import ensure_staff_can_access_warehouse
 
 
 class OrderTaskService:
@@ -26,6 +27,7 @@ class OrderTaskService:
                 is_active=True,
                 employee__is_active=True,
                 employee__user__is_active=True,
+                warehouses__id=order_task.warehouse_id,
             )
             .select_related(
                 "employee",
@@ -393,6 +395,12 @@ class OrderTaskService:
             if performed_by is not None
             else order_task.performed_by
         )
+
+        if new_performed_by is not None and order_task.warehouse:
+            ensure_staff_can_access_warehouse(
+                new_performed_by,
+                order_task.warehouse,
+            )
 
         if status is not None:
 

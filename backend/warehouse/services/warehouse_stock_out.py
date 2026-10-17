@@ -12,6 +12,9 @@ from warehouse.models.warehouse_stock_out import (
 from warehouse.services.warehouse_process import (
     InventoryService,
 )
+from warehouse.services.staff_access import (
+    ensure_staff_can_access_warehouse,
+)
 
 
 class WarehouseStockOutService:
@@ -50,6 +53,11 @@ class WarehouseStockOutService:
             raise ValueError(
                 "انباردار یافت نشد."
             )
+
+        ensure_staff_can_access_warehouse(
+            performed_by,
+            warehouse,
+        )
 
         product_ids = [
             item["product_id"]
