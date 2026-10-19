@@ -55,28 +55,11 @@ class TaskListApi(generics.ListAPIView):
     def get_queryset(self):
         return TaskAccess.get_queryset(
             self.request.user,
-        )
+        ).filter(status=Task.Status.IN_PROGRESS)
 
 
-@extend_schema(
-    request={
-        "multipart/form-data": {
-            "type": "object",
-            "properties": {
-                "title": {"type": "string"},
-                "description": {"type": "string"},
-                "case": {"type": "integer", "nullable": True},
-                "department": {"type": "integer"},
-                "assigned_employee": {"type": "integer"},
-                "files": {
-                    "type": "array",
-                    "items": {"type": "string", "format": "binary"},
-                },
-            },
-            "required": ["title", "department", "assigned_employee"],
-        },
-    },
-)
+
+
 class TaskCreateApi(generics.CreateAPIView):
 
     queryset = Task.objects.all()
@@ -540,10 +523,7 @@ class TaskStepDeadlinePatchView(generics.GenericAPIView):
             TaskStepDeadlineSerializer(obj).data
         )
 
-@extend_schema(
-    request=None,
-    responses=TaskDetailSerializer,
-)
+
 class TaskReopenApi(
     generics.GenericAPIView
 ):

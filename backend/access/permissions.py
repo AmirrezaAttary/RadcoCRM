@@ -9,6 +9,7 @@ from access.warehouse import WarehouseAccess
 from access.internal_task import InternalTaskAccess
 from access.purchase import PurchaseAccess
 from access.quality_control import QualityControlAccess
+from access.production import ProductionAccess
 
 
 class IsAdmin(BasePermission):
@@ -99,4 +100,12 @@ class QualityControlPermission(BasePermission):
             user=request.user
         )
 
+        return True
+
+
+class ProductionPermission(BasePermission):
+
+    def has_permission(self, request, view):
+
+        ProductionAccess.can_access(user=request.user)
         return True

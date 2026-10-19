@@ -10,6 +10,7 @@ from .serializers import (
     CustomerDetailSerializer,
     CustomerScoreSerializer,
 )
+from . paginations import CustomerPagination
 
 class CustomerListApi(generics.ListAPIView):
 
@@ -20,7 +21,8 @@ class CustomerListApi(generics.ListAPIView):
     permission_classes = (
         IsAuthenticated,
     )
-
+    pagination_class = CustomerPagination
+    
 
 class CustomerCreateApi(generics.CreateAPIView):
 
