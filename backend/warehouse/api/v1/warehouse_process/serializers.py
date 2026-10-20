@@ -30,6 +30,11 @@ class InventoryStockSerializer(
         read_only=True,
     )
 
+    shelf_code = serializers.CharField(
+        source="product.shelf_code",
+        read_only=True,
+    )
+
     unit_label = serializers.SerializerMethodField()
 
     performed_by = serializers.SerializerMethodField()
@@ -46,6 +51,7 @@ class InventoryStockSerializer(
 
             "product",
             "product_name",
+            "shelf_code",
 
             "initial_quantity",
             "current_quantity",
@@ -321,6 +327,11 @@ class StockTransactionSerializer(
         read_only=True,
     )
 
+    shelf_code = serializers.CharField(
+        source="product.shelf_code",
+        read_only=True,
+    )
+
     minimum_stock = serializers.SerializerMethodField()
 
     maximum_stock = serializers.SerializerMethodField()
@@ -349,6 +360,7 @@ class StockTransactionSerializer(
 
             "product",
             "product_name",
+            "shelf_code",
 
             "performed_by",
             "performed_by_name",
@@ -433,6 +445,11 @@ class WarehouseStockOutItemSerializer(
         read_only=True,
     )
 
+    shelf_code = serializers.CharField(
+        source="product.shelf_code",
+        read_only=True,
+    )
+
     reason_display = serializers.CharField(
         source="get_reason_display",
         read_only=True,
@@ -457,6 +474,7 @@ class WarehouseStockOutItemSerializer(
 
             "product_id",
             "product_name",
+            "shelf_code",
 
             "quantity",
 

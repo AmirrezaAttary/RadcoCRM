@@ -1,4 +1,5 @@
 from rest_framework import generics
+from rest_framework import serializers as drf_serializers
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
@@ -16,6 +17,7 @@ from warehouse.api.v1.warehouse_order_task.serializers import (
     OrderTaskSerializer,
     OrderTaskCreateSerializer,
     OrderTaskUpdateSerializer,
+    OrderTaskAddItemsSerializer,
     OrderTaskDeadlineSerializer,
     OrderTaskAttachmentListSerializer,
     OrderTaskAttachmentCreateSerializer,
@@ -215,6 +217,64 @@ class OrderTaskUpdateView(
 
         return Response(
             response_serializer.data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrderTaskAddItemsView(
+    generics.GenericAPIView
+):
+    """
+    POST /order_task/<pk>/add-items/
+    افزودن کالاهای تیک‌خورده به فاکتور مشتری.
+    """
+
+    queryset = order_task_queryset()
+
+    serializer_class = OrderTaskAddItemsSerializer
+
+    permission_classes = (
+        IsAuthenticated,
+        WarehousePermission,
+    )
+
+    def post(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+
+        order_task = self.get_object()
+
+        serializer = self.get_serializer(
+            data=request.data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        try:
+            OrderTaskService.add_items(
+                order_task=order_task,
+                items=serializer.validated_data[
+                    "items"
+                ],
+            )
+
+        except ValueError as exc:
+            raise drf_serializers.ValidationError(
+                {"detail": str(exc)}
+            )
+
+        order_task = (
+            order_task_queryset()
+            .get(pk=order_task.pk)
+        )
+
+        return Response(
+            OrderTaskSerializer(order_task).data,
             status=status.HTTP_200_OK,
         )
 

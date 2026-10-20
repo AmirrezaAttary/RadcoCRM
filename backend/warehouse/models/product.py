@@ -68,6 +68,15 @@ class Product(models.Model):
         verbose_name="واحد تعداد"
     )
 
+    # کد قفسه: عمداً unique نیست؛ چند کالا می‌توانند در یک قفسه باشند
+    shelf_code = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name="کد قفسه",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

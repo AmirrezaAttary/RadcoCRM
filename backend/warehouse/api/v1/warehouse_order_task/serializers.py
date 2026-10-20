@@ -75,6 +75,11 @@ class OrderTaskItemSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    shelf_code = serializers.CharField(
+        source="product.shelf_code",
+        read_only=True,
+    )
+
     status_display = serializers.CharField(
         source="get_status_display",
         read_only=True,
@@ -91,6 +96,7 @@ class OrderTaskItemSerializer(serializers.ModelSerializer):
             "id",
             "product",
             "product_name",
+            "shelf_code",
 
             "quantity",
             "completed_quantity",
@@ -363,6 +369,32 @@ class OrderTaskCreateSerializer(serializers.Serializer):
             )
 
         return validated_items
+
+
+class OrderTaskAddItemsSerializer(serializers.Serializer):
+    """
+    افزودن کالاهای تیک‌خورده به فاکتور (OrderTask) موجود.
+    بدنه JSON:  {"items": [{"product_id": 3, "quantity": 2}, ...]}
+    """
+
+    items = OrderTaskCreateItemSerializer(many=True)
+
+    def validate_items(self, items):
+
+        if not items:
+            raise serializers.ValidationError(
+                "حداقل یک کالا باید انتخاب شود."
+            )
+
+        product_ids = [item["product"].id for item in items]
+
+        if len(product_ids) != len(set(product_ids)):
+            raise serializers.ValidationError(
+                "یک کالا نمی‌تواند بیشتر از یک بار "
+                "در لیست انتخاب‌شده باشد."
+            )
+
+        return items
 
 
 class OrderTaskCompletedItemSerializer(serializers.Serializer):

@@ -5,6 +5,7 @@ from .views import (
     OrderTaskListView,
     OrderTaskDetailView,
     OrderTaskUpdateView,
+    OrderTaskAddItemsView,
     OrderTaskDeadlineListView,
     OrderTaskDeadlineDetailView,
     OrderTaskAttachmentListView,
@@ -35,6 +36,11 @@ urlpatterns = [
         "<int:pk>/update/",
         OrderTaskUpdateView.as_view(),
         name="order-task-update",
+    ),
+    path(
+        "<int:pk>/add-items/",
+        OrderTaskAddItemsView.as_view(),
+        name="order-task-add-items",
     ),
 
     path(

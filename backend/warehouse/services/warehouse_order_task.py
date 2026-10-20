@@ -160,6 +160,12 @@ class OrderTaskService:
                     else None
                 ),
 
+                "shelf_code": (
+                    item.product.shelf_code
+                    if item.product
+                    else None
+                ),
+
                 "quantity": item.quantity,
 
                 "completed_quantity": (
@@ -347,6 +353,101 @@ class OrderTaskService:
                 order_task=order_task,
             )
         )
+
+        return order_task
+
+    @staticmethod
+    @transaction.atomic
+    def add_items(
+        *,
+        order_task,
+        items,
+    ):
+        """
+        افزودن کالاهای انتخاب‌شده (تیک‌خورده در فرانت) به فاکتور مشتری.
+
+        - فقط برای سفارش «در حال انجام» مجاز است.
+        - اگر کالا از قبل در فاکتور باشد و هنوز «در انتظار» باشد،
+          تعداد جدید به تعداد قبلی اضافه می‌شود.
+        """
+
+        order_task = (
+            OrderTask.objects
+            .select_for_update()
+            .get(pk=order_task.pk)
+        )
+
+        if order_task.status != OrderTask.Status.IN_PROGRESS:
+            raise ValueError(
+                "فقط به سفارش‌های در حال انجام "
+                "می‌توان کالا اضافه کرد."
+            )
+
+        if not items:
+            raise ValueError(
+                "حداقل یک کالا باید انتخاب شود."
+            )
+
+        existing = {
+            order_item.product_id: order_item
+            for order_item in (
+                order_task.items.select_for_update()
+            )
+        }
+
+        seen = set()
+
+        for item in items:
+
+            product = item.get("product")
+            quantity = item.get("quantity")
+
+            if not product:
+                raise ValueError(
+                    "کالا برای افزودن به فاکتور الزامی است."
+                )
+
+            if quantity is None or quantity <= 0:
+                raise ValueError(
+                    "تعداد سفارش باید بیشتر از صفر باشد."
+                )
+
+            if product.id in seen:
+                raise ValueError(
+                    "یک کالا نمی‌تواند بیشتر از یک بار "
+                    "در لیست انتخاب‌شده باشد."
+                )
+
+            seen.add(product.id)
+
+            order_item = existing.get(product.id)
+
+            if order_item is None:
+
+                OrderTaskItem.objects.create(
+                    order_task=order_task,
+                    product=product,
+                    quantity=quantity,
+                    completed_quantity=0,
+                    status=OrderTaskItem.Status.PENDING,
+                )
+
+                continue
+
+            if order_item.status != OrderTaskItem.Status.PENDING:
+                raise ValueError(
+                    f"کالای «{product.name}» قبلاً در این فاکتور "
+                    "نهایی شده و قابل ویرایش نیست."
+                )
+
+            order_item.quantity += quantity
+
+            order_item.save(
+                update_fields=[
+                    "quantity",
+                    "updated_at",
+                ]
+            )
 
         return order_task
 

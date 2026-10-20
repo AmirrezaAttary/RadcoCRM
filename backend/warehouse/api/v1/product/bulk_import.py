@@ -67,6 +67,9 @@ HEADER_ALIASES = {
     "unit_type": {
         "unit_type", "unit", "نوع واحد", "واحد",
     },
+    "shelf_code": {
+        "shelf_code", "shelf", "کد قفسه", "قفسه",
+    },
     # dimension
     "meter": {"meter", "متر"},
     "centimeter": {"centimeter", "سانتیمتر", "سانتی متر"},
@@ -485,6 +488,15 @@ class ProductExcelImportApi(GenericAPIView):
                         })
                         continue
 
+                    shelf_code = cell_text(item.get("shelf_code"))
+                    if len(shelf_code) > 50:
+                        errors.append({
+                            "row": excel_row,
+                            "name": name,
+                            "reason": "کد قفسه بیش از ۵۰ کاراکتر است.",
+                        })
+                        continue
+
                     try:
                         unit_type = parse_unit_type(item.get("unit_type"))
 
@@ -522,6 +534,7 @@ class ProductExcelImportApi(GenericAPIView):
                         "name": name,
                         "sale_price": price,
                         "category_name": category_name,
+                        "shelf_code": shelf_code,
                         "unit_type": unit_type,
                         "unit_values": unit_values,
                         "stock_values": stock_values,
@@ -634,6 +647,7 @@ class ProductExcelImportApi(GenericAPIView):
                             "name": r["name"],
                             "sale_price": r["sale_price"],
                             "category": category,
+                            "shelf_code": r["shelf_code"],
                             "unit_type": r["unit_type"],
                         }
 
@@ -690,6 +704,7 @@ class ProductExcelImportApi(GenericAPIView):
                 "name": r["name"],
                 "sale_price": int(r["sale_price"]),
                 "category": r["category_name"],
+                "shelf_code": r["shelf_code"],
             }
             if warehouse is not None:
                 entry.update({

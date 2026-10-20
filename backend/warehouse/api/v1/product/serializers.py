@@ -68,7 +68,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "id", "name", "sale_price", "category", "category_detail", "unit_type",
+            "id", "name", "sale_price", "shelf_code", "category", "category_detail", "unit_type",
             "dimension_unit", "dimension_unit_detail", "dimension_unit_data",
             "weight_unit",    "weight_unit_detail",    "weight_unit_data",
             "volume_unit",    "volume_unit_detail",    "volume_unit_data",
@@ -80,6 +80,9 @@ class ProductSerializer(serializers.ModelSerializer):
             "id", "created_at", "updated_at",
             "dimension_unit", "weight_unit", "volume_unit", "area_unit", "count_unit",
         ]
+
+    def validate_shelf_code(self, value):
+        return (value or "").strip()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -121,3 +124,56 @@ class ProductInitSerializer(serializers.Serializer):
     sale_price = serializers.DecimalField(max_digits=12, decimal_places=2)
     category   = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all())
     unit_type  = serializers.ChoiceField(choices=Product.unit_type.field.choices)
+    shelf_code = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+
+    def validate_shelf_code(self, value):
+        return (value or "").strip()
+
+
+class ProductShelfSerializer(serializers.Serializer):
+    """لیست کدهای قفسه همراه با تعداد کالاهای هر قفسه."""
+    shelf_code = serializers.CharField()
+    product_count = serializers.IntegerField()
+
+
+class ProductPickSerializer(serializers.ModelSerializer):
+    """
+    آیتم لیست انتخاب کالا (چک‌لیست فاکتور) برای فرانت.
+    موجودی و وضعیت «قبلاً در فاکتور» از context می‌آید (stock_map / order_map).
+    """
+    category_name = serializers.CharField(source="category.name", read_only=True, default=None)
+    unit_label = serializers.SerializerMethodField()
+    current_stock = serializers.SerializerMethodField()
+    in_order = serializers.SerializerMethodField()
+    ordered_quantity = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = [
+            "id", "name", "shelf_code", "sale_price",
+            "category", "category_name",
+            "unit_type", "unit_label",
+            "current_stock",
+            "in_order", "ordered_quantity",
+        ]
+
+    def get_unit_label(self, obj):
+        return obj.get_unit_type_display() if obj.unit_type else None
+
+    def get_current_stock(self, obj):
+        stock_map = self.context.get("stock_map")
+        if stock_map is None:
+            return None
+        return stock_map.get(obj.pk, 0)
+
+    def get_in_order(self, obj):
+        order_map = self.context.get("order_map")
+        if order_map is None:
+            return False
+        return obj.pk in order_map
+
+    def get_ordered_quantity(self, obj):
+        order_map = self.context.get("order_map")
+        if order_map is None:
+            return None
+        return order_map.get(obj.pk)

@@ -28,6 +28,11 @@ class WarehouseTaskSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    shelf_code = serializers.CharField(
+        source="product.shelf_code",
+        read_only=True,
+    )
+
     assigned_to_name = serializers.CharField(
         source="assigned_to.employee.full_name",
         read_only=True,
@@ -64,6 +69,7 @@ class WarehouseTaskSerializer(serializers.ModelSerializer):
             "warehouse_code",
             "product",
             "product_name",
+            "shelf_code",
             "expected_quantity",
             "received_quantity",
             "assigned_to",
@@ -88,6 +94,7 @@ class WarehouseTaskSerializer(serializers.ModelSerializer):
             "warehouse_code",
             "product",
             "product_name",
+            "shelf_code",
             "expected_quantity",
             "received_quantity",
             "assigned_to",

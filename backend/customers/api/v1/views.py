@@ -21,7 +21,7 @@ class CustomerListApi(generics.ListAPIView):
     permission_classes = (
         IsAuthenticated,
     )
-    pagination_class = CustomerPagination
+    # pagination_class = CustomerPagination
     
 
 class CustomerCreateApi(generics.CreateAPIView):

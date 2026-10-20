@@ -3,7 +3,7 @@ from warehouse.api.v1.product.bulk_import import ProductExcelImportApi
 from warehouse.api.v1.product.views import (
     ProductCategoryListView, ProductCategoryCreateView,
     ProductCategoryRetrieveView, ProductCategoryUpdateView, ProductCategoryDeleteView,
-    ProductListView, ProductCreateView,
+    ProductListView, ProductCreateView, ProductShelfListView, ProductPickListView,
     ProductRetrieveView, ProductUpdateView, ProductDeleteView,ProductInitView
 )
 
@@ -22,6 +22,8 @@ urlpatterns = [
         ProductExcelImportApi.as_view(),
         name="product-bulk-import-warehouse",
     ),
+    path("shelves/", ProductShelfListView.as_view(), name="product-shelf-list"),
+    path("picklist/", ProductPickListView.as_view(), name="product-picklist"),
     path("", ProductListView.as_view(), name="product-list"),
     path("create/", ProductCreateView.as_view(), name="product-create"),
     path("<int:pk>/", ProductRetrieveView.as_view(), name="product-detail"),
