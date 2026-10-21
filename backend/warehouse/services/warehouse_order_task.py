@@ -792,3 +792,124 @@ class OrderTaskService:
             )
 
         return order_task
+
+    @staticmethod
+    @transaction.atomic
+    def confirm(
+        *,
+        order_task,
+        performed_by,
+        items=None,
+        note="",
+        file=None,
+    ):
+        """
+        تایید لیست سفارش توسط انباردار (دکمه «تایید»).
+
+        - items=None  → همه اقلام در انتظار به تعداد سفارش‌شده تایید می‌شوند.
+        - items=[{"product_id": .., "quantity": ..}] → فقط همین اقلام
+          (و به همین تعداد) تایید می‌شوند؛ بقیه «تأمین نشد» ثبت می‌شوند.
+
+        مراحل بعد از تایید (همان مسیر update):
+          خروج از موجودی انبار برای هر قلم، ثبت قیمت فروش، ثبت پیوست،
+          حذف مهلت، ساخت آرشیو و ساخت خودکار تسک خرید در صورت
+          رسیدن موجودی به زیر حداقل.
+
+        اگر هیچ قلمی قابل تأمین نباشد، کل عملیات برگردانده می‌شود
+        و انباردار باید سفارش را لغو کند.
+        """
+
+        order_task = (
+            OrderTask.objects
+            .select_for_update()
+            .get(pk=order_task.pk)
+        )
+
+        if order_task.status != OrderTask.Status.IN_PROGRESS:
+            raise ValueError(
+                "فقط سفارش‌های در حال انجام قابل تایید هستند."
+            )
+
+        if performed_by is None:
+            raise ValueError(
+                "انباردار مشخص نشده است."
+            )
+
+        if not performed_by.is_active:
+            raise ValueError(
+                "انباردار انتخاب‌شده فعال نیست."
+            )
+
+        pending_items = list(
+            order_task.items.filter(
+                status=OrderTaskItem.Status.PENDING
+            )
+        )
+
+        if not pending_items:
+            raise ValueError(
+                "این سفارش هیچ کالای در انتظاری ندارد."
+            )
+
+        if items is None:
+
+            completed_items = [
+                {
+                    "product_id": item.product_id,
+                    "quantity": item.quantity,
+                }
+                for item in pending_items
+            ]
+
+        else:
+
+            pending_product_ids = {
+                item.product_id
+                for item in pending_items
+            }
+
+            for item in items:
+
+                if item["product_id"] not in pending_product_ids:
+                    raise ValueError(
+                        f"کالای {item['product_id']} "
+                        "در اقلام در انتظار این سفارش نیست."
+                    )
+
+            completed_items = items
+
+        note = (note or "").strip()
+
+        if not note:
+            note = "تایید موجودی و خروج کالا توسط انباردار"
+
+        order_task = OrderTaskService.update(
+            order_task=order_task,
+            performed_by=performed_by,
+            status=OrderTask.Status.COMPLETED,
+            completed_items=completed_items,
+            note=note,
+            file=file,
+        )
+
+        results = list(order_task.items.all())
+
+        if not any(
+            item.status == OrderTaskItem.Status.SUCCESS
+            for item in results
+        ):
+
+            reasons = "؛ ".join(
+                f"{item.product.name}: "
+                f"{item.error_message or 'نامشخص'}"
+                for item in results
+            )
+
+            # پرتاب خطا داخل atomic باعث rollback کامل می‌شود
+            raise ValueError(
+                "هیچ‌کدام از کالاها قابل تأمین نبود. "
+                f"({reasons}) "
+                "در صورت نیاز سفارش را لغو کنید."
+            )
+
+        return order_task

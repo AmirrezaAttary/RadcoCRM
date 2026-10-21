@@ -11,6 +11,7 @@ from warehouse.models.warehouse_order_task import (
     OrderTaskAttachment,
 )
 
+from warehouse.models.warehouse_process import InventoryStock
 from warehouse.models.warehouse_staff import WarehouseStaff
 from warehouse.models.product import Product
 from warehouse.models.warehouse import Warehouse
@@ -89,6 +90,10 @@ class OrderTaskItemSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    available_quantity = serializers.SerializerMethodField()
+
+    is_sufficient = serializers.SerializerMethodField()
+
     class Meta:
         model = OrderTaskItem
 
@@ -99,6 +104,8 @@ class OrderTaskItemSerializer(serializers.ModelSerializer):
             "shelf_code",
 
             "quantity",
+            "available_quantity",
+            "is_sufficient",
             "completed_quantity",
 
             "product_sale_price",
@@ -112,6 +119,37 @@ class OrderTaskItemSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_available_quantity(self, obj):
+        """
+        موجودی فعلی کالا در انبار سفارش (برای بررسی انباردار).
+        فقط برای اقلام «در انتظار» محاسبه می‌شود.
+        """
+
+        if obj.status != OrderTaskItem.Status.PENDING:
+            return None
+
+        warehouse_id = obj.order_task.warehouse_id
+
+        cache = self.context.setdefault("_stock_cache", {})
+
+        if warehouse_id not in cache:
+            cache[warehouse_id] = dict(
+                InventoryStock.objects
+                .filter(warehouse_id=warehouse_id)
+                .values_list("product_id", "current_quantity")
+            )
+
+        return cache[warehouse_id].get(obj.product_id, 0)
+
+    def get_is_sufficient(self, obj):
+
+        available = self.get_available_quantity(obj)
+
+        if available is None:
+            return None
+
+        return available >= obj.quantity
 
 
 class OrderTaskSerializer(serializers.ModelSerializer):
@@ -550,6 +588,80 @@ class OrderTaskUpdateSerializer(serializers.Serializer):
                 })
 
         return attrs
+
+
+class OrderTaskConfirmSerializer(serializers.Serializer):
+    """
+    دکمه «تایید» انباردار روی لیست سفارش.
+
+    - items ارسال نشود → همه اقلام به تعداد سفارش تایید می‌شوند.
+    - items (JSON): [{"product_id": 3, "quantity": 2}, ...]
+      → فقط همین اقلام تایید می‌شوند.
+    """
+
+    performed_by = serializers.PrimaryKeyRelatedField(
+        queryset=WarehouseStaff.objects.filter(
+            is_active=True
+        ),
+    )
+
+    items = serializers.CharField(
+        required=False,
+    )
+
+    note = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+
+    file = serializers.FileField(
+        required=False,
+        allow_null=True,
+    )
+
+    def validate_items(self, value):
+
+        try:
+            items = json.loads(value)
+
+        except json.JSONDecodeError:
+
+            raise serializers.ValidationError(
+                "فرمت items صحیح نیست. "
+                "باید یک JSON معتبر باشد."
+            )
+
+        if not isinstance(items, list) or not items:
+
+            raise serializers.ValidationError(
+                "items باید یک آرایه JSON غیرخالی باشد."
+            )
+
+        item_serializer = OrderTaskCompletedItemSerializer(
+            data=items,
+            many=True,
+        )
+
+        item_serializer.is_valid(
+            raise_exception=True
+        )
+
+        validated_items = item_serializer.validated_data
+
+        product_ids = [
+            item["product_id"]
+            for item in validated_items
+        ]
+
+        if len(product_ids) != len(set(product_ids)):
+
+            raise serializers.ValidationError(
+                "یک کالا نمی‌تواند بیشتر از یک بار "
+                "در لیست تایید ثبت شود."
+            )
+
+        return validated_items
 
 
 class OrderTaskAttachmentListSerializer(

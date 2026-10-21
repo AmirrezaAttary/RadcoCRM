@@ -17,6 +17,7 @@ from warehouse.api.v1.warehouse_order_task.serializers import (
     OrderTaskSerializer,
     OrderTaskCreateSerializer,
     OrderTaskUpdateSerializer,
+    OrderTaskConfirmSerializer,
     OrderTaskAddItemsSerializer,
     OrderTaskDeadlineSerializer,
     OrderTaskAttachmentListSerializer,
@@ -158,6 +159,48 @@ class OrderTaskListView(
         WarehousePermission,
     )
 
+    def get_queryset(self):
+        """
+        فیلترهای اختیاری (برای صف کار انباردار):
+          status        → in_progress / completed / cancelled
+          warehouse_id  → فقط سفارش‌های همین انبار
+          staff_id      → فقط سفارش‌های انبارهایی که این انباردار به آن‌ها دسترسی دارد
+        """
+
+        queryset = super().get_queryset()
+
+        params = self.request.query_params
+
+        status_param = params.get("status")
+
+        if status_param:
+
+            if status_param not in OrderTask.Status.values:
+                raise drf_serializers.ValidationError(
+                    {"status": "وضعیت واردشده معتبر نیست."}
+                )
+
+            queryset = queryset.filter(status=status_param)
+
+        for name, lookup in (
+            ("warehouse_id", "warehouse_id"),
+            ("staff_id", "warehouse__staff_members__pk"),
+        ):
+
+            raw = params.get(name)
+
+            if raw in (None, ""):
+                continue
+
+            if not str(raw).isdigit():
+                raise drf_serializers.ValidationError(
+                    {name: "مقدار نامعتبر است."}
+                )
+
+            queryset = queryset.filter(**{lookup: int(raw)})
+
+        return queryset
+
 
 class OrderTaskUpdateView(
     generics.UpdateAPIView
@@ -217,6 +260,85 @@ class OrderTaskUpdateView(
 
         return Response(
             response_serializer.data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrderTaskConfirmView(
+    generics.GenericAPIView
+):
+    """
+    POST /order_task/<pk>/confirm/
+    دکمه «تایید» انباردار روی لیست سفارش مشتری.
+
+    فرم‌دیتا:
+      performed_by  → id انباردار (الزامی)
+      items         → اختیاری، JSON: [{"product_id": 3, "quantity": 2}]
+                      ارسال نشود = همه اقلام به تعداد سفارش تایید می‌شوند
+      note، file    → اختیاری
+    """
+
+    queryset = order_task_queryset()
+
+    serializer_class = OrderTaskConfirmSerializer
+
+    parser_classes = [
+        MultiPartParser,
+        FormParser,
+    ]
+
+    permission_classes = (
+        IsAuthenticated,
+        WarehousePermission,
+    )
+
+    def post(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+
+        order_task = self.get_object()
+
+        serializer = self.get_serializer(
+            data=request.data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        try:
+            OrderTaskService.confirm(
+                order_task=order_task,
+                performed_by=serializer.validated_data[
+                    "performed_by"
+                ],
+                items=serializer.validated_data.get(
+                    "items"
+                ),
+                note=serializer.validated_data.get(
+                    "note",
+                    "",
+                ),
+                file=serializer.validated_data.get(
+                    "file"
+                ),
+            )
+
+        except ValueError as exc:
+            raise drf_serializers.ValidationError(
+                {"detail": str(exc)}
+            )
+
+        order_task = (
+            order_task_queryset()
+            .get(pk=order_task.pk)
+        )
+
+        return Response(
+            OrderTaskSerializer(order_task).data,
             status=status.HTTP_200_OK,
         )
 
