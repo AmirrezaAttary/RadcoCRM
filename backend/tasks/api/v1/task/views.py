@@ -37,6 +37,7 @@ from .serializers import (
     TaskStepDeadlineUpdateSerializer,
     TaskStepDeadlinePatchSerializer,
     TaskReopenSerializer,
+    TaskTransferSerializer,
     CompleteTaskSerializer,
     TaskDeactivateSerializer,
     TaskActivateSerializer,
@@ -260,6 +261,86 @@ class TaskRevertApi(generics.GenericAPIView):
 
         return Response(
             TaskDetailSerializer(task).data,
+        )
+
+
+@extend_schema(
+    request={
+        "multipart/form-data": {
+            "type": "object",
+            "required": ["department"],
+            "properties": {
+                "department": {
+                    "type": "integer",
+                    "description": (
+                        "شناسه‌ی دپارتمان مقصد. تسک به اولین مرحله‌ی "
+                        "این دپارتمان می‌رود و به مدیر آن اختصاص داده می‌شود."
+                    ),
+                },
+                "note": {"type": "string"},
+                "files": {
+                    "type": "array",
+                    "items": {"type": "string", "format": "binary"},
+                },
+            },
+        },
+    },
+    responses=TaskDetailSerializer,
+)
+class TaskTransferApi(generics.GenericAPIView):
+
+    queryset = Task.objects.all()
+
+    serializer_class = TaskTransferSerializer
+
+    permission_classes = (
+        IsAuthenticated,
+        TaskPermission,
+    )
+
+    parser_classes = (
+        MultiPartParser,
+        FormParser,
+    )
+
+    def post(self, request, *args, **kwargs):
+        task = self.get_object()
+
+        try:
+            employee = request.user.employee_profile
+        except ObjectDoesNotExist:
+            raise PermissionDenied(
+                "فقط کارمند مسئول تسک می‌تواند این عملیات را انجام دهد."
+            )
+
+        serializer = self.get_serializer(
+            data=request.data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        try:
+            task = services.transfer_task_to_department(
+                task=task,
+                employee=employee,
+                department=serializer.validated_data["department"],
+                note=serializer.validated_data.get("note", ""),
+                files=serializer.validated_data.get("files", []),
+            )
+
+        except TaskServiceError as error:
+            raise ValidationError(str(error))
+
+        return Response(
+            TaskDetailSerializer(
+                task,
+                context={
+                    "request": request,
+                },
+            ).data,
+            status=status.HTTP_200_OK,
         )
 
 

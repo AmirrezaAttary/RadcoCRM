@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from tasks.models import Task, TaskStepLog, TaskStepDeadline
 from accounts.models import Employee
-from department.models import DepartmentStep
+from department.models import Department, DepartmentStep
 from tasks.models.cases import Case
 
 from ..task_attachment.serializers import TaskAttachmentSerializer
@@ -165,6 +165,26 @@ class TaskAdvanceSerializer(TaskActionSerializer):
     next_assigned_employee = serializers.PrimaryKeyRelatedField(
         queryset=Employee.objects.all(),
         many=True,
+        required=False,
+    )
+
+
+class TaskTransferSerializer(serializers.Serializer):
+
+    # دپارتمان مقصد؛ تسک به اولین مرحله‌ی این دپارتمان می‌رود
+    # و به مدیر(های) آن دپارتمان اختصاص داده می‌شود.
+    department = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+    )
+
+    note = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+
+    files = serializers.ListField(
+        child=serializers.FileField(),
         required=False,
     )
 

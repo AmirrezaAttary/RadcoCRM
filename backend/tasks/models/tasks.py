@@ -97,6 +97,7 @@ class TaskStepLog(models.Model):
     class Action(models.TextChoices):
         ADVANCED = "advanced", "پیشروی"
         REVERTED = "reverted", "بازگشت"
+        TRANSFERRED = "transferred", "انتقال به دپارتمان دیگر"
 
     task = models.ForeignKey(
         Task,

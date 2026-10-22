@@ -17,6 +17,7 @@ from .serializers import (
 )
 
 
+
 class IsAdminOrDepartmentManager(BasePermission):
     """
     اجازه دسترسی به ادمین یا مدیر دپارتمان.
@@ -31,8 +32,20 @@ class IsAdminOrDepartmentManager(BasePermission):
         if user.is_staff or user.is_superuser:
             return True
 
+        # اگر request.user خودش Employee باشد
+        if isinstance(user, Employee):
+            employee = user
+        else:
+            # اگر Employee به User از طریق فیلد user متصل باشد
+            employee = Employee.objects.filter(
+                user=user
+            ).first()
+
+        if not employee:
+            return False
+
         return DepartmentEmployee.objects.filter(
-            employee=user,
+            employee=employee,
             is_manager=True,
         ).exists()
 

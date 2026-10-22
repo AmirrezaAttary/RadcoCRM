@@ -111,6 +111,22 @@ def _ensure_department_manager(*, employee, department):
         raise NotDepartmentManagerError()
 
 
+def _get_department_managers(*, department):
+    """
+    مدیر(های) فعال دپارتمان را برمی‌گرداند.
+    """
+    return list(
+        Employee.objects
+        .filter(
+            is_active=True,
+            department_memberships__department=department,
+            department_memberships__is_manager=True,
+        )
+        .select_related("user")
+        .distinct()
+    )
+
+
 def _get_step_employees_for_revert(*, task, step):
     """
     کارمند(های) مسئول مرحله‌ی `step` را برمی‌گرداند؛ یعنی کسانی که
@@ -1017,6 +1033,127 @@ def revert_step(
                     number=assignee.user.phone_number,
                     message=message,
                 )
+
+    return task
+
+@transaction.atomic
+def transfer_task_to_department(
+    *,
+    task,
+    employee,
+    department,
+    note="",
+    files=None,
+):
+    """
+    تسک را به دپارتمان دیگری منتقل می‌کند.
+
+    - تسک در اولین مرحله‌ی دپارتمان مقصد قرار می‌گیرد.
+    - مسئول تسک، مدیر(های) دپارتمان مقصد می‌شوند.
+    - ددلاین‌های مرحله‌های دپارتمان قبلی حذف می‌شوند.
+    """
+    task = (
+        Task.objects
+        .select_for_update()
+        .select_related(
+            "department",
+            "current_step",
+        )
+        .get(pk=task.pk)
+    )
+
+    _ensure_task_workflow_active(
+        task=task
+    )
+
+    if task.status != Task.Status.IN_PROGRESS:
+        raise InvalidTaskActionError(
+            "فقط تسک‌های در حال انجام قابل انتقال هستند."
+        )
+
+    _ensure_task_assigned_employee_active(
+        task=task,
+        employee=employee,
+    )
+
+    old_department = task.department
+    old_step = task.current_step
+
+    if department.pk == old_department.pk:
+        raise InvalidTaskActionError(
+            "تسک هم‌اکنون در همین دپارتمان است."
+        )
+
+    first_step = _get_first_step(department)
+
+    if first_step is None:
+        raise InvalidTaskActionError(
+            "دپارتمان مقصد هیچ مرحله‌ای ندارد."
+        )
+
+    managers = _get_department_managers(
+        department=department
+    )
+
+    if not managers:
+        raise InvalidTaskActionError(
+            "دپارتمان مقصد مدیر فعالی ندارد."
+        )
+
+    log_note = (
+        f"انتقال از دپارتمان «{old_department.name}» "
+        f"به دپارتمان «{department.name}»"
+    )
+
+    if note and note.strip():
+        log_note = f"{log_note}\n{note.strip()}"
+
+    step_log = TaskStepLog.objects.create(
+        task=task,
+        step=old_step,
+        action=TaskStepLog.Action.TRANSFERRED,
+        note=log_note,
+    )
+
+    step_log.employee.add(employee)
+
+    if files:
+        _create_attachments(
+            files=files,
+            uploaded_by=employee.user,
+            task_step_log=step_log,
+        )
+
+    # ددلاین‌ها به مرحله‌های دپارتمان قبلی وابسته‌اند.
+    _delete_task_deadlines(
+        task=task
+    )
+
+    task.department = department
+    task.current_step = first_step
+
+    task.save(
+        update_fields=[
+            "department",
+            "current_step",
+            "updated_at",
+        ]
+    )
+
+    task.assigned_employee.set(managers)
+
+    message = (
+        f"تسک «{task.title}» از دپارتمان «{old_department.name}» "
+        f"به دپارتمان «{department.name}» منتقل شد "
+        f"و به شما اختصاص داده شد."
+    )
+
+    for manager in managers:
+        if manager.user.phone_number:
+            send_sms(
+                number=manager.user.phone_number,
+                message=message,
+            )
 
     return task
 
