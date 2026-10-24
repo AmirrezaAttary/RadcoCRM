@@ -16,6 +16,16 @@ class WarehouseTaskArchiveListView(
     generics.ListAPIView
 ):
 
+    search_fields = (
+        "purchase_task_title",
+        "purchase_task_source",
+        "warehouse_name",
+        "warehouse_code",
+        "product_name",
+        "assigned_to_full_name",
+        "note",
+    )
+
     queryset = (
         WarehouseTaskArchive.objects
         .select_related(

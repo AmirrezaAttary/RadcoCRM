@@ -11,6 +11,17 @@ from .serializers import (
 
 class TaskArchiveListView(generics.ListAPIView):
 
+    search_fields = (
+        "title",
+        "description",
+        "customer_full_name",
+        "customer_phone_number",
+        "customer_company_name",
+        "department_name",
+        "current_step_name",
+        "created_by_full_name",
+    )
+
     queryset = (
         TaskArchive.objects
         .all()

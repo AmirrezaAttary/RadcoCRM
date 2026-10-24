@@ -7,6 +7,10 @@ from .serializers import (NoteListSerializer, NoteDetailSerializer, NoteCreateSe
 
 
 class NoteListView(generics.ListAPIView):
+    search_fields = (
+        "description",
+    )
+
     serializer_class = NoteListSerializer
     permission_classes = [IsAuthenticated]
 

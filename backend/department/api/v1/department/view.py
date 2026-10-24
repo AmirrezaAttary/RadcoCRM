@@ -16,6 +16,11 @@ from .serializer import (
 
 class DepartmentListApi(generics.ListAPIView):
 
+    search_fields = (
+        "name",
+        "description",
+    )
+
     serializer_class = DepartmentListSerializer
 
     permission_classes = (

@@ -11,6 +11,12 @@ from .serializer import (
 
 
 class UserListApi(generics.ListAPIView):
+    search_fields = (
+        "username",
+        "phone_number",
+        "employee_profile__full_name",
+    )
+
     queryset = User.objects.all()
     serializer_class = UserListSerializer
     permission_classes = (IsAuthenticated,)

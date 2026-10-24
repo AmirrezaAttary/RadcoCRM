@@ -11,6 +11,11 @@ from .serializers import WarehouseSerializer
 class WarehouseListView(
     generics.ListAPIView
 ):
+    search_fields = (
+        "name",
+        "code",
+    )
+
     queryset = Warehouse.objects.all()
     serializer_class = WarehouseSerializer
 

@@ -49,6 +49,7 @@ urlpatterns = [
     path('document/', include('document.urls')),
     path('minutes/', include('minutes.urls')),
     path('production/', include('production.urls')),
+    path('dashboard/', include('dashboard.urls')),
     path('api-auth/', include('rest_framework.urls')),
 ]
 

@@ -20,6 +20,10 @@ from access.permissions import WarehousePermission
 # ── ProductCategory ──────────────────────────────────────────
 
 class ProductCategoryListView(ListAPIView):
+    search_fields = (
+        "name",
+    )
+
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
     permission_classes = [IsAuthenticated]

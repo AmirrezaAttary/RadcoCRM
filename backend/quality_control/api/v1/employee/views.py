@@ -9,6 +9,12 @@ from .serializers import (
 class QualityControlEmployeeListView(
     generics.ListAPIView
 ):
+    search_fields = (
+        "user__username",
+        "user__phone_number",
+        "user__employee_profile__full_name",
+    )
+
     queryset = (
         QualityControlEmployee.objects
         .select_related("user")

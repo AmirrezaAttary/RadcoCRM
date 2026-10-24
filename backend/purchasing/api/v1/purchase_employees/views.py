@@ -5,6 +5,11 @@ from .serializers import PurchaseProcessEmployeeSerializer
 
 
 class PurchaseProcessEmployeeListView(generics.ListAPIView):
+    search_fields = (
+        "employee__full_name",
+        "employee__user__username",
+    )
+
     serializer_class = PurchaseProcessEmployeeSerializer
 
     def get_queryset(self):

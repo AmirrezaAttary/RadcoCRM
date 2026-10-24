@@ -12,6 +12,11 @@ from .serializers import MachineSerializer
 
 class MachineListView(generics.ListAPIView):
 
+    search_fields = (
+        "name",
+        "code",
+    )
+
     serializer_class = MachineSerializer
 
     permission_classes = (

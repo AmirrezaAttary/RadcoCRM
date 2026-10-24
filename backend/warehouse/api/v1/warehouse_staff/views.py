@@ -10,6 +10,11 @@ from access.permissions import WarehousePermission
 
 
 class WarehouseStaffListView(ListAPIView):
+    search_fields = (
+        "employee__full_name",
+        "employee__user__username",
+    )
+
     serializer_class = WarehouseStaffSerializer
     permission_classes = [IsAuthenticated]
 

@@ -15,6 +15,13 @@ class InternalTaskArchiveListView(
     generics.ListAPIView
 ):
 
+    search_fields = (
+        "title",
+        "description",
+        "created_by_full_name",
+        "created_by_username",
+    )
+
     serializer_class = (
         InternalTaskArchiveListSerializer
     )

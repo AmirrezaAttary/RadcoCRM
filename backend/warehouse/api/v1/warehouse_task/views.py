@@ -23,6 +23,13 @@ from .serializers import (
 
 class WarehouseTaskListView(generics.ListAPIView):
 
+    search_fields = (
+        "note",
+        "product__name",
+        "warehouse__name",
+        "assigned_to__employee__full_name",
+    )
+
     queryset = (
         WarehouseTask.objects
         .select_related(

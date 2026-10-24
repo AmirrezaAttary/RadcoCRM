@@ -4,6 +4,7 @@ app_name = "tasks"
 
 urlpatterns = [
     path("cases/", include("tasks.api.v1.case.urls")),
+    path("cases/", include("tasks.api.v1.case_report.urls")),
     path("tasks/", include("tasks.api.v1.task.urls")),
     path("tasks/", include("tasks.api.v1.task_attachment.urls")),
     path("internal_task/", include("tasks.api.v1.internal_task.urls")),

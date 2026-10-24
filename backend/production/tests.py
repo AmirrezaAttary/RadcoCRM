@@ -35,13 +35,18 @@ class ProductionApiTests(APITestCase):
             std_production_per_hour=100, std_waste_per_hour=5,
         )
 
-    def _log(self, date, employee, machine, hours, produced, waste):
+    def _log(self, date, employee, machine, hours, produced, waste,
+             start="08:00", end=None):
+        # اگر پایان داده نشود، از روی ساعت کار محاسبه می‌شود
+        if end is None:
+            minutes = int(hours * 60)
+            end = f"{(8 * 60 + minutes) // 60 % 24:02d}:{minutes % 60:02d}"
         return self.client.post(
             reverse("production-log-create"),
             {
                 "date": date, "employee": employee.pk, "machine": machine.pk,
-                "hours_worked": hours, "produced_qty": produced,
-                "waste_qty": waste,
+                "start_time": start, "end_time": end,
+                "produced_qty": produced, "waste_qty": waste,
             },
             format="json",
         )
@@ -106,16 +111,85 @@ class ProductionApiTests(APITestCase):
         res = self._log("2026-10-01", self.op1, self.m2, 2, 150, 4)
         self.assertEqual(res.status_code, 201, res.data)
 
-    def test_hours_validation(self):
+    def test_times_required_on_create(self):
         self.client.force_authenticate(self.admin)
+        url = reverse("production-log-create")
+        base = {
+            "date": "2026-10-01", "employee": self.op1.pk,
+            "machine": self.m1.pk, "produced_qty": 1,
+        }
         self.assertEqual(
-            self._log("2026-10-01", self.op1, self.m1, 25, 1, 0).status_code,
-            400,
+            self.client.post(url, base, format="json").status_code, 400,
         )
         self.assertEqual(
-            self._log("2026-10-01", self.op1, self.m1, 0, 1, 0).status_code,
-            400,
+            self.client.post(
+                url, {**base, "start_time": "08:00"}, format="json",
+            ).status_code, 400,
         )
+        # شروع و پایان یکسان
+        self.assertEqual(
+            self._log("2026-10-01", self.op1, self.m1, 1, 1, 0,
+                      start="08:00", end="08:00").status_code, 400,
+        )
+
+    def test_hours_computed_from_times(self):
+        self.client.force_authenticate(self.admin)
+        res = self._log("2026-10-01", self.op1, self.m1, 0, 100, 2,
+                        start="08:00", end="16:30")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(Decimal(res.data["hours_worked"]), Decimal("8.50"))
+        self.assertEqual(res.data["start_time"], "08:00:00")
+        self.assertEqual(res.data["end_time"], "16:30:00")
+
+        # hours_worked ارسالی نادیده گرفته می‌شود
+        res = self.client.post(
+            reverse("production-log-create"),
+            {"date": "2026-10-02", "employee": self.op1.pk,
+             "machine": self.m1.pk, "start_time": "08:00",
+             "end_time": "10:00", "hours_worked": "20",
+             "produced_qty": 1},
+            format="json",
+        )
+        self.assertEqual(Decimal(res.data["hours_worked"]), Decimal("2.00"))
+
+    def test_overnight_shift(self):
+        self.client.force_authenticate(self.admin)
+        res = self._log("2026-10-01", self.op1, self.m1, 0, 100, 2,
+                        start="22:00", end="06:00")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(Decimal(res.data["hours_worked"]), Decimal("8.00"))
+
+    def test_update_times_recomputes_hours(self):
+        self.client.force_authenticate(self.admin)
+        pk = self._log("2026-10-01", self.op1, self.m1, 8, 400, 10).data["id"]
+        res = self.client.patch(
+            reverse("production-log-update", args=[pk]),
+            {"end_time": "12:00"}, format="json",
+        )
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertEqual(Decimal(res.data["hours_worked"]), Decimal("4.00"))
+        # استانداردِ لحظه‌ی ثبت دست نمی‌خورد
+        self.assertEqual(Decimal(res.data["expected_production"]), Decimal("200"))
+
+    def test_legacy_log_without_times_still_works(self):
+        log = ProductionLog.objects.create(
+            date="2026-10-01", employee=self.op1, machine=self.m1,
+            hours_worked=8, produced_qty=400, waste_qty=0,
+        )
+        self.client.force_authenticate(self.admin)
+        res = self.client.patch(
+            reverse("production-log-update", args=[log.pk]),
+            {"produced_qty": 410}, format="json",
+        )
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertIsNone(res.data["start_time"])
+        self.assertEqual(Decimal(res.data["hours_worked"]), Decimal("8"))
+        # فقط یکی از دو ساعت مجاز نیست
+        res = self.client.patch(
+            reverse("production-log-update", args=[log.pk]),
+            {"start_time": "08:00"}, format="json",
+        )
+        self.assertEqual(res.status_code, 400)
 
     def test_inactive_machine_and_employee_rejected(self):
         self.client.force_authenticate(self.admin)
@@ -427,3 +501,163 @@ class MachineReportTests(APITestCase):
         self.assertEqual(res.data["machines"][0]["produced"], 400)
 
         self.assertEqual(self.client.get(url, {"year": 1405}).status_code, 400)
+
+
+class VarianceReportTests(APITestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = User.objects.create_user(
+            username="admin", phone_number="09120000000",
+            password="x", type=User.UserType.ADMIN,
+        )
+        u1 = User.objects.create_user(
+            username="emp1", phone_number="09120000001", password="x",
+        )
+        u2 = User.objects.create_user(
+            username="emp2", phone_number="09120000002", password="x",
+        )
+        cls.op1 = Employee.objects.create(user=u1, full_name="Ali")
+        cls.op2 = Employee.objects.create(user=u2, full_name="Reza")
+
+        cls.m1 = Machine.objects.create(
+            name="Press", code="M1",
+            std_production_per_hour=50, std_waste_per_hour=2,
+        )
+        cls.m2 = Machine.objects.create(
+            name="Cutter", code="M2",
+            std_production_per_hour=100, std_waste_per_hour=5,
+        )
+
+        def log(date, emp, machine, start, end, produced, waste):
+            ProductionLog.objects.create(
+                date=date, employee=emp, machine=machine,
+                start_time=start, end_time=end,
+                produced_qty=produced, waste_qty=waste,
+            )
+
+        from datetime import time
+        # M1: استاندارد ۵۰/ساعت، ضایعات ۲/ساعت
+        log("2026-10-01", cls.op1, cls.m1, time(8), time(16), 380, 20)  # 8h: انتظار 400/16
+        log("2026-10-01", cls.op2, cls.m1, time(8), time(12), 210, 6)   # 4h: انتظار 200/8
+        log("2026-10-03", cls.op1, cls.m2, time(8), time(10), 220, 4)   # 2h: انتظار 200/10
+
+    def setUp(self):
+        self.client.force_authenticate(self.admin)
+        self.url = reverse("production-report-variance")
+
+    def _get(self, **params):
+        return self.client.get(self.url, params)
+
+    def test_non_admin_denied(self):
+        self.client.force_authenticate(self.op1.user)
+        res = self._get(date_from="2026-10-01", date_to="2026-10-03")
+        self.assertEqual(res.status_code, 403)
+
+    def test_machine_variance_and_series(self):
+        res = self._get(
+            date_from="2026-10-01", date_to="2026-10-03", entity="machine",
+        )
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertNotIn("operators", res.data)
+        self.assertEqual(len(res.data["labels"]), 3)
+
+        m1 = next(
+            m for m in res.data["machines"]["items"]
+            if m["machine_code"] == "M1"
+        )
+        # روز اول: تولید 590 در برابر 600 استاندارد
+        self.assertEqual(m1["series"]["produced"], [590, 0, 0])
+        self.assertEqual(m1["series"]["expected_production"], [600.0, 0.0, 0.0])
+        self.assertEqual(m1["series"]["production_diff"], [-10.0, 0.0, 0.0])
+        # ضایعات 26 در برابر 24 استاندارد
+        self.assertEqual(m1["series"]["waste_diff"], [2.0, 0.0, 0.0])
+        self.assertEqual(m1["totals"]["production_diff"], -10.0)
+        self.assertEqual(m1["totals"]["production_diff_percent"], -1.7)
+
+        totals = res.data["machines"]["totals"]
+        self.assertEqual(totals["produced"], 810)
+        self.assertEqual(totals["production_diff"], 10.0)  # 810 - 800
+
+    def test_operator_variance(self):
+        res = self._get(
+            date_from="2026-10-01", date_to="2026-10-03", entity="operator",
+        )
+        self.assertNotIn("machines", res.data)
+        ali = next(
+            o for o in res.data["operators"]["items"]
+            if o["employee_name"] == "Ali"
+        )
+        # Ali: 380 + 220 = 600 تولید، استاندارد 400 + 200
+        self.assertEqual(ali["totals"]["produced"], 600)
+        self.assertEqual(ali["totals"]["expected_production"], 600.0)
+        self.assertEqual(ali["totals"]["production_diff"], 0.0)
+        self.assertEqual(ali["series"]["production_diff"], [-20.0, 0.0, 20.0])
+
+        reza = next(
+            o for o in res.data["operators"]["items"]
+            if o["employee_name"] == "Reza"
+        )
+        self.assertEqual(reza["totals"]["production_diff"], 10.0)
+
+    def test_both_by_default_and_filters(self):
+        res = self._get(date_from="2026-10-01", date_to="2026-10-03")
+        self.assertIn("machines", res.data)
+        self.assertIn("operators", res.data)
+
+        # عملکرد اپراتورها فقط روی یک دستگاه
+        res = self._get(
+            date_from="2026-10-01", date_to="2026-10-03",
+            entity="operator", machine_id=self.m1.pk,
+        )
+        names = {o["employee_name"] for o in res.data["operators"]["items"]}
+        self.assertEqual(names, {"Ali", "Reza"})
+        ali = next(
+            o for o in res.data["operators"]["items"]
+            if o["employee_name"] == "Ali"
+        )
+        self.assertEqual(ali["totals"]["produced"], 380)
+
+        # یک اپراتور
+        res = self._get(
+            date_from="2026-10-01", date_to="2026-10-03",
+            employee_id=self.op2.pk,
+        )
+        self.assertEqual(len(res.data["operators"]["items"]), 1)
+        self.assertEqual(len(res.data["machines"]["items"]), 1)
+
+    def test_filtered_entity_without_data_is_returned(self):
+        res = self._get(
+            date_from="2026-10-10", date_to="2026-10-11",
+            entity="machine", machine_id=self.m2.pk,
+        )
+        item = res.data["machines"]["items"][0]
+        self.assertEqual(item["series"]["produced"], [0, 0])
+        self.assertIsNone(item["totals"]["production_diff_percent"])
+
+    def test_grouping_and_validation(self):
+        res = self._get(
+            date_from="2026-10-01", date_to="2026-10-10", group_by="week",
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data["labels"]), 3)
+
+        res = self._get(year=1405, month=7, group_by="week")
+        self.assertEqual(res.status_code, 200)
+
+        self.assertEqual(self._get().status_code, 400)
+        self.assertEqual(
+            self._get(date_from="2026-10-01", date_to="2026-10-03",
+                      entity="x").status_code, 400,
+        )
+
+    def test_legacy_logs_without_times_are_included(self):
+        ProductionLog.objects.create(
+            date="2026-10-05", employee=self.op1, machine=self.m1,
+            hours_worked=2, produced_qty=100, waste_qty=0,
+        )
+        res = self._get(
+            date_from="2026-10-05", date_to="2026-10-05", entity="machine",
+        )
+        m = res.data["machines"]["items"][0]
+        self.assertEqual(m["totals"]["production_diff"], 0.0)

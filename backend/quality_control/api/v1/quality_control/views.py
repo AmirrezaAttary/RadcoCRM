@@ -25,6 +25,14 @@ class QualityControlListView(
     generics.ListAPIView
 ):
 
+    search_fields = (
+        "note",
+        "purchase_task__product__name",
+        "purchase_task__warehouse__name",
+        "checked_by__user__username",
+        "checked_by__user__employee_profile__full_name",
+    )
+
     queryset = (
         QualityControl.objects
         .select_related(

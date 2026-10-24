@@ -17,7 +17,6 @@ from .serializers import (
 )
 
 
-
 class IsAdminOrDepartmentManager(BasePermission):
     """
     اجازه دسترسی به ادمین یا مدیر دپارتمان.
@@ -73,6 +72,14 @@ class EmployeeScoreView(generics.GenericAPIView):
 
 
 class EmployeeScoreHistoryView(generics.ListAPIView):
+    search_fields = (
+        "reason",
+        "action",
+        "task__title",
+        "department_step__name",
+        "order_task__title",
+    )
+
     permission_classes = [IsAuthenticated]
     serializer_class = ScoreSerializer
 

@@ -46,6 +46,14 @@ from .serializers import (
 
 class TaskListApi(generics.ListAPIView):
 
+    search_fields = (
+        "title",
+        "description",
+        "case__title",
+        "case__customer__full_name",
+        "department__name",
+    )
+
     serializer_class = TaskListSerializer
 
     permission_classes = (
@@ -345,6 +353,12 @@ class TaskTransferApi(generics.GenericAPIView):
 
 
 class TaskStepLogListApi(generics.ListAPIView):
+
+    search_fields = (
+        "action",
+        "note",
+        "step__name",
+    )
 
     serializer_class = TaskStepLogSerializer
 

@@ -16,6 +16,13 @@ from .serializers import (
 
 
 class PurchaseTaskAttachmentListView(generics.ListAPIView):
+    search_fields = (
+        "note",
+        "task__product__name",
+        "process_step__title",
+        "created_by__employee__full_name",
+    )
+
     serializer_class = PurchaseTaskAttachmentListSerializer
 
     def get_queryset(self):

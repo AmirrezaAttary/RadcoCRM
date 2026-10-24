@@ -12,6 +12,11 @@ from .serializer import (
 
 class DepartmentEmployeeListApi(generics.ListAPIView):
 
+    search_fields = (
+        "employee__full_name",
+        "department__name",
+    )
+
     queryset = DepartmentEmployee.objects.select_related(
         "employee",
         "department",

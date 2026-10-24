@@ -29,6 +29,10 @@ class InternalTaskRoutineListView(
     generics.ListAPIView
 ):
 
+    search_fields = (
+        "task__title",
+    )
+
     serializer_class = (
         InternalTaskRoutineSerializer
     )

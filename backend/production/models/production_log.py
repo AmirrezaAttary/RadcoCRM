@@ -1,4 +1,5 @@
-from decimal import Decimal
+from datetime import date, datetime, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -39,6 +40,21 @@ class ProductionLog(models.Model):
             MaxValueValidator(Decimal("24")),
         ],
         verbose_name="ساعت کار",
+    )
+
+    # ساعت شروع و پایان کار. اگر پایان کوچک‌تر یا مساوی شروع باشد
+    # یعنی شیفت از نیمه‌شب گذشته و پایان مربوط به روز بعد است.
+    # برای رکوردهای قدیمی که قبل از این فیلدها ثبت شده‌اند خالی است.
+    start_time = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name="ساعت شروع",
+    )
+
+    end_time = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name="ساعت پایان",
     )
 
     produced_qty = models.PositiveIntegerField(
@@ -96,7 +112,37 @@ class ProductionLog(models.Model):
     def __str__(self):
         return f"{self.date} - {self.employee} - {self.machine}"
 
+    @staticmethod
+    def hours_between(start_time, end_time):
+        """
+        فاصله‌ی دو ساعت به‌صورت ساعت اعشاری (دو رقم اعشار).
+        اگر پایان <= شروع باشد، پایان در روز بعد فرض می‌شود.
+        """
+        start = datetime.combine(date.min, start_time)
+        end = datetime.combine(date.min, end_time)
+
+        if end <= start:
+            end += timedelta(days=1)
+
+        hours = Decimal((end - start).total_seconds()) / Decimal(3600)
+        return hours.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    @property
+    def crosses_midnight(self):
+        return bool(
+            self.start_time
+            and self.end_time
+            and self.end_time <= self.start_time
+        )
+
     def save(self, *args, **kwargs):
+        # اگر ساعت شروع و پایان داده شده باشد، ساعت کار از روی آن‌ها
+        # محاسبه می‌شود تا یک منبع واحد برای همه‌ی گزارش‌ها داشته باشیم.
+        if self.start_time and self.end_time:
+            self.hours_worked = self.hours_between(
+                self.start_time, self.end_time,
+            )
+
         # فقط هنگام ایجاد، استاندارد فعلی دستگاه کپی می‌شود
         if self._state.adding:
             self.std_production_per_hour = self.machine.std_production_per_hour

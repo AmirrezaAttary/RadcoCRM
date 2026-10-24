@@ -33,6 +33,12 @@ from tasks.services.tasks import (
 
 class CaseListApi(generics.ListAPIView):
 
+    search_fields = (
+        "title",
+        "description",
+        "customer__full_name",
+    )
+
     serializer_class = CaseListSerializer
 
     permission_classes = (
@@ -106,6 +112,10 @@ class CaseDeleteApi(generics.DestroyAPIView):
 
 
 class ResourceListApi(generics.ListAPIView):
+
+    search_fields = (
+        "title",
+    )
 
     queryset = Resource.objects.all()
 

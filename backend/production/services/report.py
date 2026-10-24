@@ -109,6 +109,12 @@ class ProductionReportService:
                 jdatetime.date.fromgregorian(date=log.date)
                 .strftime("%Y/%m/%d")
             )
+            day["start_time"] = (
+                log.start_time.strftime("%H:%M") if log.start_time else None
+            )
+            day["end_time"] = (
+                log.end_time.strftime("%H:%M") if log.end_time else None
+            )
             day["note"] = log.note
             mac["days"].append(day)
 

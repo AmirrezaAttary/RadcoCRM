@@ -5,6 +5,11 @@ from .serializers import PurchaseProcessStepSerializer
 
 
 class PurchaseProcessStepListView(generics.ListAPIView):
+    search_fields = (
+        "title",
+        "description",
+    )
+
     serializer_class = PurchaseProcessStepSerializer
 
     def get_queryset(self):

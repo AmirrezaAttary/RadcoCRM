@@ -82,6 +82,13 @@ class InventoryStockListView(
     generics.ListAPIView
 ):
 
+    search_fields = (
+        "product__name",
+        "product__shelf_code",
+        "warehouse__name",
+        "warehouse__code",
+    )
+
     serializer_class = InventoryStockSerializer
 
     permission_classes = [
@@ -137,6 +144,14 @@ class InventoryStockRetrieveView(
 class StockTransactionListView(
     generics.ListAPIView
 ):
+
+    search_fields = (
+        "product__name",
+        "product__shelf_code",
+        "warehouse__name",
+        "note",
+        "performed_by__employee__full_name",
+    )
 
     serializer_class = StockTransactionSerializer
 

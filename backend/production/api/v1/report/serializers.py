@@ -118,3 +118,26 @@ class MachineMonthlyQuerySerializer(serializers.Serializer):
         queryset=Machine.objects.all(),
         required=False,
     )
+
+
+# ---------------------------------------------------------------------
+# گزارش تفاضل از استاندارد (برای نمودار)
+# ---------------------------------------------------------------------
+
+from accounts.models.employee import Employee  # noqa: E402
+from production.services.variance_report import ENTITY_CHOICES  # noqa: E402
+
+
+class VarianceQuerySerializer(MachineSummaryQuerySerializer):
+
+    # دستگاه‌محور، اپراتورمحور یا هر دو در یک پاسخ
+    entity = serializers.ChoiceField(
+        choices=ENTITY_CHOICES,
+        default="both",
+    )
+
+    # فقط یک اپراتور
+    employee_id = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(),
+        required=False,
+    )

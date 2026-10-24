@@ -20,6 +20,12 @@ from .serializers import (
 class DocumentListCreateView(
     generics.ListCreateAPIView
 ):
+    search_fields = (
+        "title",
+        "created_by__username",
+        "created_by__employee_profile__full_name",
+    )
+
     serializer_class = DocumentSerializer
     permission_classes = [IsAuthenticated]
 
@@ -60,6 +66,10 @@ class DocumentDetailView(
 class DocumentFileListCreateView(
     generics.ListCreateAPIView
 ):
+    search_fields = (
+        "file",
+    )
+
     serializer_class = DocumentFileSerializer
     permission_classes = [IsAuthenticated]
 
@@ -169,6 +179,10 @@ class DocumentFileDetailView(
 class DocumentStepListCreateView(
     generics.ListCreateAPIView
 ):
+    search_fields = (
+        "title",
+    )
+
     serializer_class = DocumentStepSerializer
     permission_classes = [IsAuthenticated]
 

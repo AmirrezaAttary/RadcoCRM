@@ -11,6 +11,15 @@ from .serializers import (
 
 class OrderTaskArchiveListView(generics.ListAPIView):
 
+    search_fields = (
+        "title",
+        "description",
+        "warehouse_name",
+        "warehouse_code",
+        "product_name",
+        "note",
+    )
+
     queryset = (
         OrderTaskArchive.objects
         .select_related(

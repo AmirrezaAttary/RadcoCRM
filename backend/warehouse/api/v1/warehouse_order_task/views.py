@@ -147,6 +147,15 @@ class OrderTaskListView(
     generics.ListAPIView
 ):
 
+    search_fields = (
+        "title",
+        "description",
+        "note",
+        "warehouse__name",
+        "warehouse__code",
+        "product__name",
+    )
+
     serializer_class = OrderTaskSerializer
 
     queryset = (
@@ -419,6 +428,11 @@ class OrderTaskDeadlineListView(
     generics.ListAPIView
 ):
 
+    search_fields = (
+        "order_task__title",
+        "order_task__warehouse__name",
+    )
+
     queryset = (
         OrderTaskDeadline.objects
         .select_related(
@@ -459,6 +473,13 @@ class OrderTaskDeadlineDetailView(
 class OrderTaskAttachmentListView(
     generics.ListAPIView
 ):
+
+    search_fields = (
+        "note",
+        "order_task__title",
+        "order_task__warehouse__name",
+        "performed_by__employee__full_name",
+    )
 
     queryset = (
         OrderTaskAttachment.objects

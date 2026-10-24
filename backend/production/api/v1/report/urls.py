@@ -4,6 +4,7 @@ from .views import (
     MachineMonthlyReportView,
     MachineSummaryReportView,
     MonthlyProductionReportView,
+    VarianceReportView,
 )
 
 
@@ -22,5 +23,10 @@ urlpatterns = [
         "machine/monthly/",
         MachineMonthlyReportView.as_view(),
         name="production-report-machine-monthly",
+    ),
+    path(
+        "variance/",
+        VarianceReportView.as_view(),
+        name="production-report-variance",
     ),
 ]

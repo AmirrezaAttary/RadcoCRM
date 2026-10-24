@@ -23,6 +23,15 @@ from .serializers import (
 
 class PurchaseTaskListCreateView(generics.ListCreateAPIView):
 
+    search_fields = (
+        "source",
+        "product__name",
+        "warehouse__name",
+        "process_step__title",
+        "created_by__username",
+        "created_by__employee_profile__full_name",
+    )
+
     permission_classes = (
         IsAuthenticated,
         PurchasePermission,
@@ -252,6 +261,15 @@ class PurchaseTaskRevertView(generics.GenericAPIView):
 class PurchaseTaskHistoryListView(
     generics.ListAPIView
 ):
+
+    search_fields = (
+        "source",
+        "product__name",
+        "warehouse__name",
+        "process_step__title",
+        "created_by__username",
+        "created_by__employee_profile__full_name",
+    )
 
     serializer_class = PurchaseTaskHistorySerializer
 

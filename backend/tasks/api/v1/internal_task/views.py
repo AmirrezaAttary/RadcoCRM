@@ -48,6 +48,11 @@ class InternalTaskListView(
     generics.ListAPIView
 ):
 
+    search_fields = (
+        "title",
+        "description",
+    )
+
     serializer_class = InternalTaskSerializer
 
     permission_classes = [

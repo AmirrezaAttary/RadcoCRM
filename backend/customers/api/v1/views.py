@@ -14,6 +14,13 @@ from . paginations import CustomerPagination
 
 class CustomerListApi(generics.ListAPIView):
 
+    search_fields = (
+        "full_name",
+        "phone_number",
+        "company_name",
+        "job_title",
+    )
+
     queryset = Customer.objects.all()
 
     serializer_class = CustomerListSerializer
@@ -72,6 +79,11 @@ class CustomerDeleteApi(generics.DestroyAPIView):
 
 
 class CustomerScoreListCreateView(generics.ListCreateAPIView):
+    search_fields = (
+        "reason",
+        "created_by__full_name",
+    )
+
     serializer_class = CustomerScoreSerializer
 
     def get_queryset(self):

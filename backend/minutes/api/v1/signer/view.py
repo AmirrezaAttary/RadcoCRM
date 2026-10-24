@@ -26,6 +26,14 @@ class MySignerListApi(generics.ListAPIView):
     ?pending=1 فقط مواردی که هنوز امضا نکرده و صورت جلسه منتظر امضاست.
     """
 
+    search_fields = (
+        "full_name",
+        "phone_number",
+        "role_title",
+        "meeting__title",
+    )
+
+
     serializer_class = SignerListSerializer
     permission_classes = (IsAuthenticated,)
 

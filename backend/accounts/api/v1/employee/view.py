@@ -12,6 +12,12 @@ from .serializer import (
 
 class EmployeeListApi(generics.ListAPIView):
 
+    search_fields = (
+        "full_name",
+        "user__username",
+        "user__phone_number",
+    )
+
     queryset = Employee.objects.select_related("user")
     serializer_class = EmployeeListSerializer
     permission_classes = (IsAuthenticated,)

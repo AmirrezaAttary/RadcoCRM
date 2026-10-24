@@ -17,6 +17,13 @@ def _base_queryset():
 
 class ProductionLogListView(generics.ListAPIView):
 
+    search_fields = (
+        "employee__full_name",
+        "machine__name",
+        "machine__code",
+        "note",
+    )
+
     serializer_class = ProductionLogSerializer
 
     permission_classes = (

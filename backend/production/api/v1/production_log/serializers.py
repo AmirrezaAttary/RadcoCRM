@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from accounts.models.employee import Employee
@@ -76,6 +78,8 @@ class ProductionLogSerializer(serializers.ModelSerializer):
             "machine_code",
 
             # Data
+            "start_time",
+            "end_time",
             "hours_worked",
             "produced_qty",
             "waste_qty",
@@ -95,6 +99,7 @@ class ProductionLogSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             "id",
+            "hours_worked",  # از روی ساعت شروع و پایان محاسبه می‌شود
             "std_production_per_hour",
             "std_waste_per_hour",
             "created_at",
@@ -118,7 +123,45 @@ class ProductionLogSerializer(serializers.ModelSerializer):
             )
         return machine
 
+    def _validate_times(self, attrs):
+        start = attrs.get(
+            "start_time", getattr(self.instance, "start_time", None)
+        )
+        end = attrs.get(
+            "end_time", getattr(self.instance, "end_time", None)
+        )
+
+        # ثبت جدید: ساعت شروع و پایان الزامی است
+        if self.instance is None:
+            missing = {}
+            if start is None:
+                missing["start_time"] = "ساعت شروع الزامی است."
+            if end is None:
+                missing["end_time"] = "ساعت پایان الزامی است."
+            if missing:
+                raise serializers.ValidationError(missing)
+
+        # رکورد قدیمی (بدون ساعت): یا هیچ‌کدام یا هر دو باید داده شوند
+        if (start is None) != (end is None):
+            raise serializers.ValidationError(
+                "ساعت شروع و ساعت پایان باید با هم ثبت شوند."
+            )
+
+        if start is not None and start == end:
+            raise serializers.ValidationError(
+                "ساعت شروع و پایان نمی‌توانند یکسان باشند."
+            )
+
+        if start is not None:
+            hours = ProductionLog.hours_between(start, end)
+            if hours < Decimal("0.01"):
+                raise serializers.ValidationError(
+                    "مدت کار خیلی کوتاه است."
+                )
+
     def validate(self, attrs):
+        self._validate_times(attrs)
+
         date = attrs.get("date", getattr(self.instance, "date", None))
         employee = attrs.get(
             "employee", getattr(self.instance, "employee", None)
