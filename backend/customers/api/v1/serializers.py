@@ -39,6 +39,12 @@ class CustomerListSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    # از annotate در CustomerListApi می‌آید؛ در جاهای دیگر False است.
+    has_case = serializers.BooleanField(
+        read_only=True,
+        default=False,
+    )
+
     class Meta:
         model = Customer
 
@@ -51,6 +57,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
             "status_display",
             "created_by_username",
             "created_at",
+            "has_case",
         )
 
 

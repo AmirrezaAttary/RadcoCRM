@@ -2,6 +2,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from access.permissions import WarehousePermission
+from warehouse.services.warehouse_scope import scope_by_warehouse
 
 from warehouse.models.warehouse_task_archive import (
     WarehouseTaskArchive,
@@ -48,6 +49,14 @@ class WarehouseTaskArchiveListView(
         IsAuthenticated,
         WarehousePermission,
     )
+
+    def get_queryset(self):
+        # warehouse_id روی آرشیو snapshot است (نه FK)
+        return scope_by_warehouse(
+            super().get_queryset(),
+            self.request,
+            field="warehouse_id",
+        )
 
 
 class WarehouseTaskArchiveDetailView(

@@ -44,6 +44,11 @@ from warehouse.api.v1.warehouse_process.serializers import (
 
 from access.permissions import WarehousePermission
 
+from warehouse.services.warehouse_scope import (
+    get_param_ids,
+    scope_by_warehouse,
+)
+
 
 
 def inventory_stock_queryset():
@@ -54,6 +59,7 @@ def inventory_stock_queryset():
             "warehouse",
             "product",
         )
+        .order_by("warehouse__name", "product__name", "pk")
         .prefetch_related(
             Prefetch(
                 "product__transactions",
@@ -97,30 +103,22 @@ class InventoryStockListView(
 
     def get_queryset(self):
 
-        queryset = inventory_stock_queryset()
-
-        warehouse_id = (
-            self.request
-            .query_params
-            .get("warehouse_id")
+        queryset = scope_by_warehouse(
+            inventory_stock_queryset(),
+            self.request,
         )
 
-        product_id = (
-            self.request
-            .query_params
-            .get("product_id")
+        # ?product=5 یا ?product=5,8,12 (و معادل قدیمی product_id)
+        product_ids = get_param_ids(
+            self.request.query_params,
+            "product",
+            "product_id",
         )
 
-        if warehouse_id:
+        if product_ids is not None:
 
             queryset = queryset.filter(
-                warehouse_id=warehouse_id
-            )
-
-        if product_id:
-
-            queryset = queryset.filter(
-                product_id=product_id
+                product_id__in=product_ids
             )
 
         return queryset
@@ -161,25 +159,22 @@ class StockTransactionListView(
 
     def get_queryset(self):
 
-        queryset = (
-            StockTransaction.objects
-            .select_related(
-                "warehouse",
-                "product",
-                "performed_by__employee",
-            )
+        queryset = scope_by_warehouse(
+            (
+                StockTransaction.objects
+                .select_related(
+                    "warehouse",
+                    "product",
+                    "performed_by__employee",
+                )
+            ),
+            self.request,
         )
 
-        warehouse_id = (
-            self.request
-            .query_params
-            .get("warehouse_id")
-        )
-
-        product_id = (
-            self.request
-            .query_params
-            .get("product_id")
+        product_ids = get_param_ids(
+            self.request.query_params,
+            "product",
+            "product_id",
         )
 
         transaction_type = (
@@ -188,16 +183,10 @@ class StockTransactionListView(
             .get("transaction_type")
         )
 
-        if warehouse_id:
+        if product_ids is not None:
 
             queryset = queryset.filter(
-                warehouse_id=warehouse_id
-            )
-
-        if product_id:
-
-            queryset = queryset.filter(
-                product_id=product_id
+                product_id__in=product_ids
             )
 
         if transaction_type:

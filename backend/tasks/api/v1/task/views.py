@@ -62,9 +62,16 @@ class TaskListApi(generics.ListAPIView):
     )
 
     def get_queryset(self):
-        return TaskAccess.get_queryset(
+        queryset = TaskAccess.get_queryset(
             self.request.user,
         ).filter(status=Task.Status.IN_PROGRESS)
+
+        # ?case=<id> → فقط تسک‌های یک پرونده
+        case = self.request.query_params.get("case")
+        if case and case.isdigit():
+            queryset = queryset.filter(case_id=int(case))
+
+        return queryset
 
 
 

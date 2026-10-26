@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from access.permissions import WarehousePermission
+from warehouse.services.warehouse_scope import scope_by_warehouse
 
 from warehouse.models.warehouse import Warehouse
 from warehouse.models.warehouse_task import WarehouseTask
@@ -48,6 +49,12 @@ class WarehouseTaskListView(generics.ListAPIView):
         IsAuthenticated,
         WarehousePermission,
     )
+
+    def get_queryset(self):
+        return scope_by_warehouse(
+            super().get_queryset(),
+            self.request,
+        )
 
 
 class WarehouseTaskDetailView(generics.RetrieveAPIView):

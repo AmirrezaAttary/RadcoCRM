@@ -28,6 +28,24 @@ class DepartmentEmployeeListApi(generics.ListAPIView):
         IsAuthenticated,
     )
 
+    def get_queryset(self):
+        """
+        ?department=<id>   → فقط کارمندان یک دپارتمان
+        ?employee=<id>     → فقط عضویت‌های یک کارمند
+        """
+        queryset = super().get_queryset()
+        params = self.request.query_params
+
+        department = params.get("department")
+        if department and department.isdigit():
+            queryset = queryset.filter(department_id=int(department))
+
+        employee = params.get("employee")
+        if employee and employee.isdigit():
+            queryset = queryset.filter(employee_id=int(employee))
+
+        return queryset
+
 
 class DepartmentEmployeeCreateApi(generics.CreateAPIView):
 

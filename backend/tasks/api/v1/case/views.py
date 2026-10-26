@@ -46,9 +46,28 @@ class CaseListApi(generics.ListAPIView):
     )
 
     def get_queryset(self):
-        return CaseAccess.get_queryset(
-            self.request.user,
+        """
+        ?customer=<id>        → فقط پرونده‌های یک مشتری
+        ?active=true|false    → فقط فعال / غیرفعال
+        """
+        queryset = (
+            CaseAccess.get_queryset(self.request.user)
+            .prefetch_related("resources")
         )
+
+        params = self.request.query_params
+
+        customer = params.get("customer")
+        if customer and customer.isdigit():
+            queryset = queryset.filter(customer_id=int(customer))
+
+        active = (params.get("active") or "").lower()
+        if active in ("1", "true"):
+            queryset = queryset.filter(active=True)
+        elif active in ("0", "false"):
+            queryset = queryset.filter(active=False)
+
+        return queryset
 
 
 class CaseCreateApi(generics.CreateAPIView):

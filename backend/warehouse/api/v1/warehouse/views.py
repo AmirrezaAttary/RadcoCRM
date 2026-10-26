@@ -16,12 +16,15 @@ class WarehouseListView(
         "code",
     )
 
-    queryset = Warehouse.objects.all()
     serializer_class = WarehouseSerializer
 
     permission_classes = (
         IsAuthenticated,
     )
+
+    def get_queryset(self):
+        # همه‌ی انبارها (فعال و غیرفعال)؛ نه محدود به دسترسی کاربر و نه is_active
+        return Warehouse.objects.all().order_by("name")
 
 
 class WarehouseCreateView(

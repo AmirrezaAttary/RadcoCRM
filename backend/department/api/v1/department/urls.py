@@ -2,6 +2,7 @@ from django.urls import path
 
 from .view import (
     DepartmentListApi,
+    DepartmentChoiceListApi,
     DepartmentCreateApi,
     DepartmentDetailApi,
     DepartmentUpdateApi,
@@ -15,6 +16,12 @@ urlpatterns = [
         "list/",
         DepartmentListApi.as_view(),
         name="department-list",
+    ),
+
+    path(
+        "choices/",
+        DepartmentChoiceListApi.as_view(),
+        name="department-choices",
     ),
 
     path(

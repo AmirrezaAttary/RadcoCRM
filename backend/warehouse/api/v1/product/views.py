@@ -15,6 +15,7 @@ from warehouse.api.v1.product.serializers import (
     ProductPickSerializer, ProductShelfSerializer,
 )
 from access.permissions import WarehousePermission
+from warehouse.services.warehouse_scope import get_param_ids
 
 
 # ── ProductCategory ──────────────────────────────────────────
@@ -84,7 +85,25 @@ class ProductListView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return _filter_products(super().get_queryset(), self.request.query_params)
+        queryset = _filter_products(super().get_queryset(), self.request.query_params)
+
+        # ?warehouse_id=3 (یا 3,5) → فقط کالاهایی که در آن انبار(ها) موجودی ثبت‌شده دارند.
+        # از subquery استفاده شده تا کالای مشترک بین دو انبار دوبار نیاید
+        # و count / صفحه‌بندی بعد از فیلتر انبار حساب شود.
+        warehouse_ids = get_param_ids(
+            self.request.query_params,
+            "warehouse_id",
+            "warehouse",
+        )
+
+        if warehouse_ids is not None:
+            queryset = queryset.filter(
+                pk__in=InventoryStock.objects
+                .filter(warehouse_id__in=warehouse_ids)
+                .values("product_id")
+            )
+
+        return queryset
 
 
 class ProductShelfListView(ListAPIView):

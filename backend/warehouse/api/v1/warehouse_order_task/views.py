@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from access.permissions import WarehousePermission
+from warehouse.services.warehouse_scope import scope_by_warehouse
 
 from warehouse.models.warehouse_order_task import (
     OrderTask,
@@ -176,7 +177,10 @@ class OrderTaskListView(
           staff_id      → فقط سفارش‌های انبارهایی که این انباردار به آن‌ها دسترسی دارد
         """
 
-        queryset = super().get_queryset()
+        queryset = scope_by_warehouse(
+            super().get_queryset(),
+            self.request,
+        )
 
         params = self.request.query_params
 
@@ -192,7 +196,6 @@ class OrderTaskListView(
             queryset = queryset.filter(status=status_param)
 
         for name, lookup in (
-            ("warehouse_id", "warehouse_id"),
             ("staff_id", "warehouse__staff_members__pk"),
         ):
 
@@ -449,6 +452,14 @@ class OrderTaskDeadlineListView(
         WarehousePermission,
     )
 
+    def get_queryset(self):
+        # انبار از طریق سفارش: order_task__warehouse
+        return scope_by_warehouse(
+            super().get_queryset(),
+            self.request,
+            field="order_task__warehouse_id",
+        )
+
 
 class OrderTaskDeadlineDetailView(
     generics.RetrieveAPIView
@@ -499,6 +510,13 @@ class OrderTaskAttachmentListView(
         IsAuthenticated,
         WarehousePermission,
     )
+
+    def get_queryset(self):
+        return scope_by_warehouse(
+            super().get_queryset(),
+            self.request,
+            field="order_task__warehouse_id",
+        )
 
 
 class OrderTaskAttachmentCreateView(

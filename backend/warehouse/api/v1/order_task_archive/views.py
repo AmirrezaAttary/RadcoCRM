@@ -2,6 +2,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from warehouse.models.order_task_archive import OrderTaskArchive
+from warehouse.services.warehouse_scope import scope_by_warehouse
 
 from .serializers import (
     OrderTaskArchiveListSerializer,
@@ -30,6 +31,14 @@ class OrderTaskArchiveListView(generics.ListAPIView):
 
     serializer_class = OrderTaskArchiveListSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # warehouse_id روی آرشیو snapshot است (نه FK)
+        return scope_by_warehouse(
+            super().get_queryset(),
+            self.request,
+            field="warehouse_id",
+        )
 
 
 class OrderTaskArchiveDetailView(generics.RetrieveAPIView):

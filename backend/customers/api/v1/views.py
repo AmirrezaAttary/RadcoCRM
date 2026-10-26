@@ -1,7 +1,11 @@
+from django.db.models import Exists, OuterRef, Q
+
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 
+from access.case import CaseAccess
+from accounts.models import User
 from customers.models import Customer, CustomerScore
 from .serializers import (
     CustomerListSerializer,
@@ -13,6 +17,19 @@ from .serializers import (
 from . paginations import CustomerPagination
 
 class CustomerListApi(generics.ListAPIView):
+    """
+    لیست مشتریان؛ تمام فیلترها سمت سرور اعمال می‌شوند.
+
+    ?page=2 & ?page_size=20   → صفحه‌بندی
+    ?status=1|2               → بالقوه / بالفعل
+    ?search=...               → جستجو (نام، موبایل، شرکت، سمت)
+    ?scope=mine               → فقط مشتریان مربوط به کاربر جاری
+                                (ثبت‌کننده یا دارای پرونده‌ای که کاربر به آن دسترسی دارد).
+                                برای ادمین همیشه همهٔ مشتریان برمی‌گردد.
+
+    هر آیتم فیلد has_case دارد (آیا پرونده‌ای قابل‌دسترس برای کاربر دارد)؛
+    پس فرانت‌اند دیگر لازم نیست همهٔ پرونده‌ها را جدا بخواند.
+    """
 
     search_fields = (
         "full_name",
@@ -21,15 +38,45 @@ class CustomerListApi(generics.ListAPIView):
         "job_title",
     )
 
-    queryset = Customer.objects.all()
-
     serializer_class = CustomerListSerializer
 
     permission_classes = (
         IsAuthenticated,
     )
-    # pagination_class = CustomerPagination
-    
+
+    def get_queryset(self):
+        user = self.request.user
+        params = self.request.query_params
+
+        visible_cases = CaseAccess.get_queryset(user).order_by()
+
+        queryset = (
+            Customer.objects
+            .select_related("created_by")
+            .annotate(
+                has_case=Exists(
+                    visible_cases.filter(customer=OuterRef("pk"))
+                ),
+            )
+        )
+
+        if (
+            params.get("scope") == "mine"
+            and user.type != User.UserType.ADMIN
+        ):
+            queryset = queryset.filter(
+                Q(created_by=user) | Q(has_case=True)
+            )
+
+        status_param = params.get("status")
+        valid_statuses = {
+            str(value) for value in Customer.CustomerStatus.values
+        }
+        if status_param in valid_statuses:
+            queryset = queryset.filter(status=int(status_param))
+
+        return queryset.order_by("-created_at", "-id")
+
 
 class CustomerCreateApi(generics.CreateAPIView):
 
