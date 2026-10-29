@@ -34,6 +34,20 @@ class DocumentFile(models.Model):
         related_name="files",
     )
 
+    step = models.ForeignKey(
+        "DocumentStep",
+        on_delete=models.CASCADE,
+        related_name="files",
+        null=True,
+        blank=True,
+    )
+
+    title = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
     file = models.FileField(
         upload_to="documents/",
         validators=[validate_document_file],
@@ -44,7 +58,7 @@ class DocumentFile(models.Model):
     )
 
     def __str__(self):
-        return self.file.name
+        return self.title
 
 
 class DocumentStep(models.Model):
@@ -58,6 +72,8 @@ class DocumentStep(models.Model):
 
     title = models.CharField(
         max_length=255,
+        null=True,
+        blank=True,
     )
 
     class Meta:

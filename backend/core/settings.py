@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "minutes",
     "production",
     "dashboard",
+    "customer_portal",
 ]
 
 MIDDLEWARE = [
