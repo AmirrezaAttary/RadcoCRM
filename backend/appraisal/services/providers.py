@@ -80,15 +80,8 @@ class TaskCalendarProvider:
         deadlines = (
             TaskStepDeadline.objects
             .filter(
-                Q(
-                    started_at__gte=start,
-                    started_at__lt=end,
-                )
-                |
-                Q(
-                    deadline__gte=start,
-                    deadline__lt=end,
-                )
+                deadline__gte=start,
+                deadline__lt=end,
             )
             .select_related(
                 "task",
@@ -113,7 +106,7 @@ class TaskCalendarProvider:
                     f"{deadline.task.title} - "
                     f"{deadline.department_step.name}"
                 ),
-                start=deadline.started_at,
+                start=deadline.deadline,
                 end=deadline.deadline,
                 type=cls.event_types["task"],
                 people={
@@ -140,15 +133,8 @@ class TaskCalendarProvider:
         deadlines = (
             InternalTaskDeadline.objects
             .filter(
-                Q(
-                    started_at__gte=start,
-                    started_at__lt=end,
-                )
-                |
-                Q(
-                    deadline__gte=start,
-                    deadline__lt=end,
-                )
+                deadline__gte=start,
+                deadline__lt=end,
             )
             .select_related(
                 "task",
@@ -170,7 +156,7 @@ class TaskCalendarProvider:
             CalendarEvent(
                 id=deadline.task.id,
                 title=deadline.task.title,
-                start=deadline.started_at,
+                start=deadline.deadline,
                 end=deadline.deadline,
                 type=cls.event_types["internal_task"],
                 people={
@@ -240,15 +226,8 @@ class OrderTaskCalendarProvider:
         deadlines = (
             OrderTaskDeadline.objects
             .filter(
-                Q(
-                    started_at__gte=start,
-                    started_at__lt=end,
-                )
-                |
-                Q(
-                    deadline__gte=start,
-                    deadline__lt=end,
-                )
+                deadline__gte=start,
+                deadline__lt=end,
             )
             .select_related(
                 "order_task",
@@ -269,7 +248,7 @@ class OrderTaskCalendarProvider:
             CalendarEvent(
                 id=deadline.order_task.id,
                 title=deadline.order_task.title,
-                start=deadline.started_at,
+                start=deadline.deadline,
                 end=deadline.deadline,
                 type=cls.event_type,
                 people={
