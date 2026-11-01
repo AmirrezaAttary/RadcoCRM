@@ -6,6 +6,8 @@ from .view import (
     UserDetailApi,
     UserUpdateApi,
     UserDeleteApi,
+    UserSetPasswordApi,
+    UserAvatarApi,
 )
 
 urlpatterns = [
@@ -37,5 +39,17 @@ urlpatterns = [
         "<int:pk>/delete/",
         UserDeleteApi.as_view(),
         name="user-delete",
+    ),
+
+    path(
+        "<int:pk>/set-password/",
+        UserSetPasswordApi.as_view(),
+        name="user-set-password",
+    ),
+
+    path(
+        "<int:pk>/avatar/",
+        UserAvatarApi.as_view(),
+        name="user-avatar",
     ),
 ]

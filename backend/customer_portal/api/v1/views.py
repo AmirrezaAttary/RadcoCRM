@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
+from django.db import transaction
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -16,15 +17,22 @@ from ...authentication import (
 )
 from ...models import CustomerOrder, CustomerPortalAccount
 from ...permissions import IsAdminOrWarehouseStaff, IsPortalAdmin
-from ...services import generate_password, products_with_stock
+from ...services import (
+    PortalConfigError,
+    dispatch_to_warehouses,
+    generate_password,
+    products_with_stock,
+)
 from .serializers import (
     AccountCreateSerializer,
     AccountListSerializer,
     AccountPasswordSerializer,
     AccountUpdateSerializer,
+    OrderApproveSerializer,
     OrderCreateSerializer,
+    OrderRejectSerializer,
     OrderSerializer,
-    OrderStatusSerializer,
+    StaffOrderSerializer,
     PortalLoginSerializer,
     PortalMeSerializer,
     PortalProductSerializer,
@@ -36,6 +44,14 @@ def _orders_queryset():
         CustomerOrder.objects
         .select_related("customer")
         .prefetch_related("items__product")
+    )
+
+
+def _staff_orders_queryset():
+    return (
+        _orders_queryset()
+        .select_related("task")
+        .prefetch_related("task__order_tasks__warehouse")
     )
 
 
@@ -120,9 +136,11 @@ class AccountSetPasswordApi(APIView):
 
 
 # ═════════════ ۲) بررسی سفارش‌ها — ادمین / کارمند انبار ═════════════
+# مرحله ۱: کارمند تأیید/رد می‌کند (اینجا). مرحله ۲: انباردار روی تسک انبار
+# با endpoint موجود order_task/<id>/confirm/ تأیید می‌کند.
 
 class StaffOrderListApi(generics.ListAPIView):
-    """?status=pending|confirmed|rejected|cancelled  ،  ?customer=<id>"""
+    """?status=pending|in_warehouse|confirmed|partial|rejected  ،  ?customer=<id>"""
 
     search_fields = (
         "customer__full_name",
@@ -130,11 +148,11 @@ class StaffOrderListApi(generics.ListAPIView):
         "customer__phone_number",
         "account__username",
     )
-    serializer_class = OrderSerializer
+    serializer_class = StaffOrderSerializer
     permission_classes = (IsAdminOrWarehouseStaff,)
 
     def get_queryset(self):
-        queryset = _orders_queryset()
+        queryset = _staff_orders_queryset()
         params = self.request.query_params
 
         status_value = params.get("status")
@@ -149,32 +167,72 @@ class StaffOrderListApi(generics.ListAPIView):
 
 
 class StaffOrderDetailApi(generics.RetrieveAPIView):
-    queryset = _orders_queryset()
-    serializer_class = OrderSerializer
+    queryset = _staff_orders_queryset()
+    serializer_class = StaffOrderSerializer
     permission_classes = (IsAdminOrWarehouseStaff,)
 
 
-class StaffOrderStatusApi(APIView):
-    """تأیید/رد یک سفارش در وضعیت «در انتظار بررسی»."""
+class StaffOrderApproveApi(APIView):
+    """
+    تأیید سفارش توسط کارمند؛ همین‌جا تسک انبار برای هر انبار ساخته می‌شود.
+    اگر موجودی کافی نباشد، تأیید انجام نمی‌شود و سفارش pending می‌ماند.
+    """
 
     permission_classes = (IsAdminOrWarehouseStaff,)
 
-    @extend_schema(request=OrderStatusSerializer, responses=OrderSerializer)
+    @extend_schema(request=OrderApproveSerializer, responses=StaffOrderSerializer)
     def post(self, request, pk):
-        order = get_object_or_404(_orders_queryset(), pk=pk)
-
-        if order.status != CustomerOrder.Status.PENDING:
-            raise ValidationError("فقط سفارش‌های در انتظار بررسی قابل تغییر وضعیت هستند.")
-
-        serializer = OrderStatusSerializer(data=request.data)
+        serializer = OrderApproveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        order.status = serializer.validated_data["status"]
-        order.staff_note = serializer.validated_data["staff_note"]
-        order.handled_by = request.user
-        order.save(update_fields=["status", "staff_note", "handled_by", "updated_at"])
+        with transaction.atomic():
+            order = get_object_or_404(
+                CustomerOrder.objects.select_for_update(), pk=pk
+            )
 
-        return Response(OrderSerializer(order).data)
+            if order.status != CustomerOrder.Status.PENDING:
+                raise ValidationError("فقط سفارش در انتظار تأیید کارمند قابل تأیید است.")
+
+            order.staff_note = serializer.validated_data["staff_note"]
+            order.handled_by = request.user
+            order.save(update_fields=["staff_note", "handled_by", "updated_at"])
+
+            try:
+                dispatch_to_warehouses(order, creator=request.user)
+            except ValueError as exc:
+                raise ValidationError(str(exc))
+            except PortalConfigError as exc:
+                raise ValidationError(str(exc))
+
+        order = get_object_or_404(_staff_orders_queryset(), pk=pk)
+        return Response(StaffOrderSerializer(order).data)
+
+
+class StaffOrderRejectApi(APIView):
+    """رد سفارش توسط کارمند (دلیل الزامی است)."""
+
+    permission_classes = (IsAdminOrWarehouseStaff,)
+
+    @extend_schema(request=OrderRejectSerializer, responses=StaffOrderSerializer)
+    def post(self, request, pk):
+        serializer = OrderRejectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            order = get_object_or_404(
+                CustomerOrder.objects.select_for_update(), pk=pk
+            )
+
+            if order.status != CustomerOrder.Status.PENDING:
+                raise ValidationError("فقط سفارش در انتظار تأیید کارمند قابل رد است.")
+
+            order.status = CustomerOrder.Status.REJECTED
+            order.staff_note = serializer.validated_data["staff_note"]
+            order.handled_by = request.user
+            order.save(update_fields=["status", "staff_note", "handled_by", "updated_at"])
+
+        order = get_object_or_404(_staff_orders_queryset(), pk=pk)
+        return Response(StaffOrderSerializer(order).data)
 
 
 # ═════════════ ۳) پرتال مشتری ═════════════
@@ -278,21 +336,3 @@ class PortalOrderDetailApi(PortalAuthMixin, generics.RetrieveAPIView):
 
     def get_queryset(self):
         return _orders_queryset().filter(customer=self.request.user.customer)
-
-
-class PortalOrderCancelApi(PortalAuthMixin, APIView):
-
-    @extend_schema(request=None, responses=OrderSerializer)
-    def post(self, request, pk):
-        order = get_object_or_404(
-            _orders_queryset().filter(customer=request.user.customer),
-            pk=pk,
-        )
-
-        if order.status != CustomerOrder.Status.PENDING:
-            raise ValidationError("فقط سفارش در انتظار بررسی قابل لغو است.")
-
-        order.status = CustomerOrder.Status.CANCELLED
-        order.save(update_fields=["status", "updated_at"])
-
-        return Response(OrderSerializer(order).data)

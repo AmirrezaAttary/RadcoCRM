@@ -1,9 +1,17 @@
+import os
+import uuid
+
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+
+def user_avatar_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return f"accounts/avatars/{instance.pk}/{uuid.uuid4().hex}{ext}"
 
 
 class UserManager(BaseUserManager):
@@ -83,6 +91,13 @@ class User(AbstractBaseUser, PermissionsMixin):
                 ),
             ),
         ],
+    )
+
+    avatar = models.ImageField(
+        upload_to=user_avatar_upload_path,
+        null=True,
+        blank=True,
+        verbose_name="عکس پروفایل",
     )
 
     is_staff = models.BooleanField(default=False)

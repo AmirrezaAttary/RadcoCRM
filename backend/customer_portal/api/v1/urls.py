@@ -9,13 +9,13 @@ from .views import (
     AccountUpdateApi,
     PortalLoginApi,
     PortalMeApi,
-    PortalOrderCancelApi,
     PortalOrderDetailApi,
     PortalOrderListCreateApi,
     PortalProductListApi,
     StaffOrderDetailApi,
+    StaffOrderApproveApi,
     StaffOrderListApi,
-    StaffOrderStatusApi,
+    StaffOrderRejectApi,
 )
 
 urlpatterns = [
@@ -27,10 +27,11 @@ urlpatterns = [
     path("accounts/<int:pk>/set-password/", AccountSetPasswordApi.as_view(), name="portal-account-set-password"),
     path("accounts/<int:pk>/delete/", AccountDeleteApi.as_view(), name="portal-account-delete"),
 
-    # ── ادمین / کارمند انبار: سفارش‌های مشتریان ──
+    # ── ادمین / کارمند انبار: بررسی (تأیید/رد) سفارش‌های مشتریان ──
     path("orders/list/", StaffOrderListApi.as_view(), name="portal-staff-order-list"),
     path("orders/<int:pk>/", StaffOrderDetailApi.as_view(), name="portal-staff-order-detail"),
-    path("orders/<int:pk>/status/", StaffOrderStatusApi.as_view(), name="portal-staff-order-status"),
+    path("orders/<int:pk>/approve/", StaffOrderApproveApi.as_view(), name="portal-staff-order-approve"),
+    path("orders/<int:pk>/reject/", StaffOrderRejectApi.as_view(), name="portal-staff-order-reject"),
 
     # ── مشتری ──
     path("portal/login/", PortalLoginApi.as_view(), name="portal-login"),
@@ -38,5 +39,4 @@ urlpatterns = [
     path("portal/products/", PortalProductListApi.as_view(), name="portal-products"),
     path("portal/orders/", PortalOrderListCreateApi.as_view(), name="portal-orders"),
     path("portal/orders/<int:pk>/", PortalOrderDetailApi.as_view(), name="portal-order-detail"),
-    path("portal/orders/<int:pk>/cancel/", PortalOrderCancelApi.as_view(), name="portal-order-cancel"),
 ]

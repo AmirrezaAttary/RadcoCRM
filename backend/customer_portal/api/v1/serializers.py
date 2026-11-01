@@ -2,7 +2,6 @@ from django.contrib.auth import password_validation
 from django.db import transaction
 from rest_framework import serializers
 
-from customers.models import Customer
 from warehouse.api.v1.product.serializers import (
     AreaUnitSerializer,
     CountUnitSerializer,
@@ -273,13 +272,35 @@ class OrderCreateSerializer(serializers.Serializer):
         return order
 
 
-class OrderStatusSerializer(serializers.Serializer):
-    """تصمیم کارمند: تأیید یا رد سفارش."""
+class StaffWarehouseTaskSerializer(serializers.Serializer):
+    """تسک انبار مربوط به سفارش (برای پیگیری در پنل کارمندان)."""
 
-    status = serializers.ChoiceField(
-        choices=[
-            CustomerOrder.Status.CONFIRMED,
-            CustomerOrder.Status.REJECTED,
-        ]
-    )
+    id = serializers.IntegerField()
+    warehouse = serializers.IntegerField(source="warehouse_id")
+    warehouse_name = serializers.CharField(source="warehouse.name")
+    status = serializers.CharField()
+    status_display = serializers.CharField(source="get_status_display")
+
+
+class StaffOrderSerializer(OrderSerializer):
+    warehouse_tasks = serializers.SerializerMethodField()
+
+    class Meta(OrderSerializer.Meta):
+        fields = OrderSerializer.Meta.fields + ("task", "warehouse_tasks")
+
+    def get_warehouse_tasks(self, obj):
+        if obj.task_id is None:
+            return []
+        return StaffWarehouseTaskSerializer(
+            obj.task.order_tasks.all(), many=True
+        ).data
+
+
+class OrderApproveSerializer(serializers.Serializer):
     staff_note = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class OrderRejectSerializer(serializers.Serializer):
+    """دلیل رد الزامی است و مشتری آن را در staff_note می‌بیند."""
+
+    staff_note = serializers.CharField(allow_blank=False)

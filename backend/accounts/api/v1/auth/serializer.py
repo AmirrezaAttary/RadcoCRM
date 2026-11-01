@@ -7,6 +7,13 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from accounts.models import User
 
 
+def _avatar_url(user, request=None):
+    if not user.avatar:
+        return None
+    url = user.avatar.url
+    return request.build_absolute_uri(url) if request else url
+
+
 class LoginSerializer(serializers.Serializer):
 
     username = serializers.CharField()
@@ -51,6 +58,10 @@ class LoginSerializer(serializers.Serializer):
                 "username": user.username,
                 "phone_number": user.phone_number,
                 "type": user.type,
+                "avatar": _avatar_url(
+                    user,
+                    self.context.get("request"),
+                ),
             }
         }
 
@@ -65,6 +76,7 @@ class MeSerializer(serializers.ModelSerializer):
             "username",
             "phone_number",
             "type",
+            "avatar",
         )
 
 

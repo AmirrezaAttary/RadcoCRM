@@ -81,10 +81,11 @@ class CustomerPortalAccount(models.Model):
 class CustomerOrder(models.Model):
 
     class Status(models.TextChoices):
-        PENDING = "pending", "در انتظار بررسی"
+        PENDING = "pending", "در انتظار تأیید کارمند"
+        IN_WAREHOUSE = "in_warehouse", "در انتظار تأیید انباردار"
         CONFIRMED = "confirmed", "تأیید شد"
-        REJECTED = "rejected", "رد شد"
-        CANCELLED = "cancelled", "لغو توسط مشتری"
+        PARTIAL = "partial", "تأیید جزئی"
+        REJECTED = "rejected", "رد شد / تأمین نشد"
 
     customer = models.ForeignKey(
         "customers.Customer",
@@ -120,6 +121,15 @@ class CustomerOrder(models.Model):
         blank=True,
         related_name="handled_customer_orders",
         verbose_name="بررسی‌کننده",
+    )
+
+    task = models.ForeignKey(
+        "tasks.Task",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="customer_orders",
+        verbose_name="تسک اصلی",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

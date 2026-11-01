@@ -10,12 +10,18 @@ class EmployeeListSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    avatar = serializers.ImageField(
+        source="user.avatar",
+        read_only=True,
+    )
+
     class Meta:
         model = Employee
         fields = (
             "id",
             "full_name",
             "username",
+            "avatar",
             "created_at",
             "updated_at",
         )
