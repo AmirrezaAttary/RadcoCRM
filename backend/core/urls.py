@@ -51,6 +51,7 @@ urlpatterns = [
     path('production/', include('production.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('customer_portal/', include('customer_portal.urls')),
+    path('hr/', include('hr.urls')),
     path('api-auth/', include('rest_framework.urls')),
 ]
 
