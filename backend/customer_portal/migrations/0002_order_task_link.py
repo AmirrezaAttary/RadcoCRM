@@ -6,7 +6,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("customer_portal", "0001_initial"),
-        ("tasks", "0004_merge_20261021_1634"),
+        ("tasks", "0003_alter_tasksteplog_action"),
     ]
 
     operations = [
